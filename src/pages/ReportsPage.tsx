@@ -25,6 +25,7 @@ import type { CoreMetrics, CropReport, FarmReport } from '../lib/calculations/pr
 
 type Tab =
   | 'summary'
+  | 'costRevenue'
   | 'farms'
   | 'crops'
   | 'best'
@@ -37,6 +38,7 @@ type Tab =
 
 const TABS: Array<{ id: Tab; labelKey: string }> = [
   { id: 'summary', labelKey: 'reports.seasonSummary' },
+  { id: 'costRevenue', labelKey: 'reports.costVsRevenue' },
   { id: 'farms', labelKey: 'reports.farmRanking' },
   { id: 'crops', labelKey: 'reports.cropRanking' },
   { id: 'best', labelKey: 'reports.bestCrops' },
@@ -145,6 +147,7 @@ export default function ReportsPage() {
       </nav>
 
       {tab === 'summary' ? <SummaryTab report={report} cropLabel={cropLabel} /> : null}
+      {tab === 'costRevenue' ? <CostRevenueTab report={report} cropLabel={cropLabel} /> : null}
       {tab === 'farms' ? <RankingTab title={t('reports.farmRanking')} ranks={farmRanks} labelOf={(f: FarmReport) => f.name} /> : null}
       {tab === 'crops' ? <RankingTab title={t('reports.cropRanking')} ranks={cropRanks} labelOf={cropLabel} /> : null}
       {tab === 'best' ? <BestCropsTab best={best} cropLabel={cropLabel} /> : null}
@@ -399,6 +402,11 @@ function SummaryTab({
 
       <Card className="mb-4">
         <SectionTitle title={t('reports.seasonSummary')} />
+        {totals.revenue === 0 && totals.cost > 0 ? (
+          <p className="mb-3 rounded-xl bg-soil-100 p-3 text-base font-semibold text-soil-700">
+            {t('reports.seasonInProgress')}
+          </p>
+        ) : null}
         <ul className="space-y-1 text-base">
           <li>
             <strong>{t('reports.bestFarm')}:</strong> {bestFarm ? `${bestFarm.name} — ${formatCurrency(bestFarm.profit)}` : t('common.noData')}
@@ -433,6 +441,69 @@ function SummaryTab({
         {bestFarm ? (
           <p className="mt-2 text-base">{t('reports.interpretationFarmRoi', { farm: bestFarm.name })}</p>
         ) : null}
+      </Card>
+    </>
+  );
+}
+
+function CostRevenueTab({
+  report,
+  cropLabel,
+}: {
+  report: ReturnType<typeof useSeasonReport>['report'];
+  cropLabel: (crop: CropReport) => string;
+}) {
+  const { t } = useTranslation();
+
+  const rows = (
+    items: Array<{ key: string; label: string; metrics: CoreMetrics }>,
+  ) => (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[420px] text-left text-base">
+        <thead>
+          <tr className="border-b border-slate-200 dark:border-slate-700">
+            <th scope="col" className="py-2">{t('common.total')}</th>
+            <th scope="col" className="py-2 text-right">{t('reports.cost')}</th>
+            <th scope="col" className="py-2 text-right">{t('reports.revenue')}</th>
+            <th scope="col" className="py-2 text-right">{t('reports.profit')}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((item) => (
+            <tr key={item.key} className="border-b border-slate-100 dark:border-slate-800">
+              <th scope="row" className="py-2 font-semibold">{item.label}</th>
+              <td className="py-2 text-right">{formatCurrency(item.metrics.cost)}</td>
+              <td className="py-2 text-right">{formatCurrency(item.metrics.revenue)}</td>
+              <td className="py-2 text-right">
+                <TrendValue value={item.metrics.profit} formatted={formatCurrency(item.metrics.profit)} />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+
+  return (
+    <>
+      <ComboBarCard
+        title={t('reports.costVsRevenueFarm')}
+        firstLabel={t('reports.cost')}
+        secondLabel={t('reports.revenue')}
+        data={report.byFarm.map((farm) => ({ name: farm.name, value: farm.cost, secondary: farm.revenue }))}
+      />
+      <Card className="mb-4">
+        {rows(report.byFarm.map((farm) => ({ key: farm.farmId, label: farm.name, metrics: farm })))}
+      </Card>
+
+      <ComboBarCard
+        title={t('reports.costVsRevenueCrop')}
+        firstLabel={t('reports.cost')}
+        secondLabel={t('reports.revenue')}
+        data={report.byCrop.map((crop) => ({ name: cropLabel(crop), value: crop.cost, secondary: crop.revenue }))}
+      />
+      <Card>
+        {rows(report.byCrop.map((crop) => ({ key: crop.cropId, label: cropLabel(crop), metrics: crop })))}
       </Card>
     </>
   );
