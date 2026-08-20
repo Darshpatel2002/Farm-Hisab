@@ -1,0 +1,16 @@
+node_modules
+dist
+dev-dist
+coverage
+.vite
+*.local
+
+# Environment files may contain project keys - never commit them.
+.env
+.env.*
+!.env.example
+
+.DS_Store
+Thumbs.db
+.idea
+*.tsbuildinfo
