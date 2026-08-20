@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { supabase } from '../lib/supabase/client';
-import { insertRow, listRows, hardDeleteRow, getRow, updateRow } from '../lib/supabase/crud';
+import { insertRow, listRows, hardDeleteRow, getRow, updateRow, callRpc } from '../lib/supabase/crud';
 import { buildSeasonReport, type FinancialDataset } from '../lib/calculations/profit';
 import { allocateExpense } from '../lib/calculations/allocation';
 import { indexUnits, toAcres } from '../lib/calculations/units';
@@ -442,5 +442,54 @@ describe.skipIf(!RUN)('end-to-end against live Supabase', () => {
     await supabase.auth.signOut();
     await signIn(userA);
     expect(await listRows('farms', {})).toHaveLength(2);
+  }, 60_000);
+
+  it('13. deletes one crop plan with everything recorded against it', async () => {
+    const before = await loadDataset();
+    expect(before.allocations.some((a) => a.id === allocA)).toBe(true);
+
+    const counts = await callRpc<Record<string, number>>('delete_allocation_data', { p_allocation: allocA });
+    expect(counts.sprays).toBe(1);
+    expect(counts.irrigations).toBe(2);
+    expect(counts.harvests).toBe(2);
+    expect(counts.sales).toBe(1);
+
+    const after = await loadDataset();
+    expect(after.allocations.some((a) => a.id === allocA)).toBe(false);
+    expect(after.harvests).toHaveLength(0);
+    expect(after.sales).toHaveLength(0);
+    expect(after.sprays).toHaveLength(0);
+    expect(after.irrigations).toHaveLength(0);
+    // The mirrored expenses went with their source records; only the shared
+    // tractor expense survives, because it also covers the other farm.
+    expect(after.expenses.every((e) => e.allocation_id !== allocA)).toBe(true);
+    const report = buildSeasonReport(after);
+    expect(report.totals.revenue).toBe(0);
+    expect(report.totals.cost).toBe(10000);
+  }, 60_000);
+
+  it('14. deletes a whole season', async () => {
+    await callRpc('delete_season_data', { p_season: seasonId });
+    const seasons = await listRows('seasons', {});
+    expect(seasons).toHaveLength(0);
+    expect(await listRows('expenses', {})).toHaveLength(0);
+    expect(await listRows('farm_crop_allocations', {})).toHaveLength(0);
+    // Farms and crops are masters and must survive a season delete.
+    expect(await listRows('farms', {})).toHaveLength(2);
+    seasonId = '';
+  }, 60_000);
+
+  it('15. resets the household back to empty', async () => {
+    await callRpc('reset_household_data');
+    expect(await listRows('farms', {})).toHaveLength(0);
+    expect(await listRows('crops', {})).toHaveLength(0);
+    expect(await listRows('seasons', {})).toHaveLength(0);
+    // The account itself stays, along with its units and settings.
+    expect(await listRows('profiles', { includeDeleted: true })).toHaveLength(1);
+    expect((await listRows('units', { includeDeleted: true })).length).toBeGreaterThan(10);
+    farmA = '';
+    farmB = '';
+    cropGroundnut = '';
+    cropCotton = '';
   }, 60_000);
 });

@@ -17,6 +17,7 @@ import { downloadCsv, downloadJson, timestampedName } from '../lib/export/files'
 import { toAppError } from '../lib/errors';
 import { SUPPORTED_LANGUAGES, setLanguage } from '../i18n';
 import { useSeasonReport } from '../features/reports/useSeasonReport';
+import { DeleteDataCard } from '../features/settings/DeleteDataCard';
 import { unitsOfKind } from '../lib/calculations/units';
 import type { HouseholdSettings, Language, Profile, Theme } from '../types/db';
 
@@ -419,6 +420,8 @@ export default function SettingsPage() {
           </div>
         </Card>
       ) : null}
+
+      {isAdmin ? <DeleteDataCard /> : null}
 
       <Card className="mb-4">
         <SectionTitle title={t('settings.about')} />

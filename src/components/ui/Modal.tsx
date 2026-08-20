@@ -76,6 +76,7 @@ export function ConfirmDialog({
   busy = false,
   onConfirm,
   onCancel,
+  children,
 }: {
   open: boolean;
   title: string;
@@ -85,6 +86,7 @@ export function ConfirmDialog({
   busy?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
+  children?: ReactNode;
 }) {
   const { t } = useTranslation();
   return (
@@ -104,6 +106,7 @@ export function ConfirmDialog({
       }
     >
       <p className="whitespace-pre-line text-base text-slate-700 dark:text-slate-300">{message}</p>
+      {children}
     </Modal>
   );
 }
