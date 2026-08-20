@@ -20,18 +20,24 @@ export function Modal({
   const { t } = useTranslation();
   const panelRef = useRef<HTMLDivElement>(null);
 
+  // Move focus into the dialog once, when it opens. Depending on anything that
+  // changes per render would pull focus back out of the field being typed in.
+  useEffect(() => {
+    if (!open) return;
+    document.body.style.overflow = 'hidden';
+    panelRef.current?.focus();
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [open]);
+
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
     };
     document.addEventListener('keydown', onKeyDown);
-    document.body.style.overflow = 'hidden';
-    panelRef.current?.focus();
-    return () => {
-      document.removeEventListener('keydown', onKeyDown);
-      document.body.style.overflow = '';
-    };
+    return () => document.removeEventListener('keydown', onKeyDown);
   }, [open, onClose]);
 
   if (!open) return null;

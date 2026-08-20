@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { Card, PageHeader, SectionTitle } from '../components/ui/Layout';
@@ -18,9 +18,19 @@ import { toAppError } from '../lib/errors';
 import { SUPPORTED_LANGUAGES, setLanguage } from '../i18n';
 import { useSeasonReport } from '../features/reports/useSeasonReport';
 import { unitsOfKind } from '../lib/calculations/units';
-import type { Language, Profile, Theme, Unit } from '../types/db';
+import type { HouseholdSettings, Language, Profile, Theme } from '../types/db';
 
 const APP_VERSION = '1.0.0';
+
+type SettingsDraft = Pick<
+  HouseholdSettings,
+  | 'currency'
+  | 'theme'
+  | 'default_area_unit'
+  | 'default_weight_unit'
+  | 'allow_area_overallocation'
+  | 'require_full_allocation'
+> & { default_season_id: string };
 
 export default function SettingsPage() {
   const { t, i18n } = useTranslation();
@@ -44,12 +54,73 @@ export default function SettingsPage() {
   const areaUnits = useMemo(() => unitsOfKind(units, 'area'), [units]);
   const weightUnits = useMemo(() => unitsOfKind(units, 'weight'), [units]);
 
-  const patchSettings = async (values: Record<string, unknown>) => {
+  // Settings and conversion factors are edited as a local draft and written
+  // only when Save is pressed, so a half-typed value is never stored.
+  const [draft, setDraft] = useState<SettingsDraft | null>(null);
+  const [factors, setFactors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
     if (!settings) return;
+    setDraft({
+      currency: settings.currency,
+      theme: settings.theme,
+      default_season_id: settings.default_season_id ?? '',
+      default_area_unit: settings.default_area_unit,
+      default_weight_unit: settings.default_weight_unit,
+      allow_area_overallocation: settings.allow_area_overallocation,
+      require_full_allocation: settings.require_full_allocation,
+    });
+  }, [settings]);
+
+  useEffect(() => {
+    setFactors(Object.fromEntries(units.map((unit) => [unit.id, String(unit.factor_to_base)])));
+  }, [units]);
+
+  const settingsDirty = Boolean(
+    settings &&
+      draft &&
+      (draft.currency !== settings.currency ||
+        draft.theme !== settings.theme ||
+        draft.default_season_id !== (settings.default_season_id ?? '') ||
+        draft.default_area_unit !== settings.default_area_unit ||
+        draft.default_weight_unit !== settings.default_weight_unit ||
+        draft.allow_area_overallocation !== settings.allow_area_overallocation ||
+        draft.require_full_allocation !== settings.require_full_allocation),
+  );
+
+  const changedUnits = areaUnits.filter((unit) => {
+    const value = Number(factors[unit.id]);
+    return Number.isFinite(value) && value > 0 && value !== unit.factor_to_base;
+  });
+
+  const saveSettings = async () => {
+    if (!settings || !draft) return;
     setBusy('settings');
     try {
-      await updateRow('household_settings', settings.household_id, values);
+      await updateRow('household_settings', settings.household_id, {
+        ...draft,
+        default_season_id: draft.default_season_id || null,
+      });
       await queryClient.invalidateQueries({ queryKey: ['settings'] });
+      toast.success(t('common.saved'));
+    } catch (error) {
+      toast.error(t(toAppError(error).messageKey));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const saveFactors = async () => {
+    setBusy('factors');
+    try {
+      for (const unit of changedUnits) {
+        await saveUnit.mutateAsync({
+          id: unit.id,
+          values: { factor_to_base: Number(factors[unit.id]) },
+          baseUpdatedAt: unit.updated_at,
+        });
+      }
+      await queryClient.invalidateQueries({ queryKey: ['units'] });
       toast.success(t('common.saved'));
     } catch (error) {
       toast.error(t(toAppError(error).messageKey));
@@ -64,11 +135,6 @@ export default function SettingsPage() {
       await updateRow('profiles', profile.id, { language });
       await refreshProfile();
     }
-  };
-
-  const patchUnit = async (unit: Unit, factor: number) => {
-    await saveUnit.mutateAsync({ id: unit.id, values: { factor_to_base: factor }, baseUpdatedAt: unit.updated_at });
-    await queryClient.invalidateQueries({ queryKey: ['units'] });
   };
 
   const runRpc = async (fn: 'load_demo_data' | 'remove_demo_data') => {
@@ -146,57 +212,63 @@ export default function SettingsPage() {
         <div className="grid gap-3 sm:grid-cols-2">
           <TextField
             label={t('settings.currency')}
-            value={settings?.currency ?? 'INR'}
+            value={draft?.currency ?? ''}
             disabled={!isAdmin}
-            onChange={(e) => void patchSettings({ currency: e.target.value.toUpperCase() })}
+            onChange={(e) => setDraft((d) => (d ? { ...d, currency: e.target.value.toUpperCase() } : d))}
           />
           <SelectField
             label={t('settings.theme')}
-            value={settings?.theme ?? 'light'}
+            value={draft?.theme ?? 'light'}
             disabled={!isAdmin}
             options={[
               { value: 'light', label: t('settings.themeLight') },
               { value: 'dark', label: t('settings.themeDark') },
               { value: 'system', label: t('settings.themeSystem') },
             ]}
-            onChange={(e) => void patchSettings({ theme: e.target.value as Theme })}
+            onChange={(e) => setDraft((d) => (d ? { ...d, theme: e.target.value as Theme } : d))}
           />
           <SelectField
             label={t('settings.defaultSeason')}
-            value={settings?.default_season_id ?? ''}
+            value={draft?.default_season_id ?? ''}
             placeholder={t('common.select')}
             disabled={!isAdmin}
             options={seasons.map((s) => ({ value: s.id, label: s.name }))}
-            onChange={(e) => void patchSettings({ default_season_id: e.target.value || null })}
+            onChange={(e) => setDraft((d) => (d ? { ...d, default_season_id: e.target.value } : d))}
           />
           <SelectField
             label={t('settings.areaUnits')}
-            value={settings?.default_area_unit ?? 'vigha'}
+            value={draft?.default_area_unit ?? ''}
             disabled={!isAdmin}
             options={areaUnits.map((u) => ({ value: u.code, label: u.label_en }))}
-            onChange={(e) => void patchSettings({ default_area_unit: e.target.value })}
+            onChange={(e) => setDraft((d) => (d ? { ...d, default_area_unit: e.target.value } : d))}
           />
           <SelectField
             label={t('settings.weightUnits')}
-            value={settings?.default_weight_unit ?? 'quintal'}
+            value={draft?.default_weight_unit ?? ''}
             disabled={!isAdmin}
             options={weightUnits.map((u) => ({ value: u.code, label: u.label_en }))}
-            onChange={(e) => void patchSettings({ default_weight_unit: e.target.value })}
+            onChange={(e) => setDraft((d) => (d ? { ...d, default_weight_unit: e.target.value } : d))}
           />
         </div>
         <CheckboxField
           label={t('settings.allowOverallocation')}
-          checked={settings?.allow_area_overallocation ?? false}
+          checked={draft?.allow_area_overallocation ?? false}
           disabled={!isAdmin}
-          onChange={(checked) => void patchSettings({ allow_area_overallocation: checked })}
+          onChange={(checked) => setDraft((d) => (d ? { ...d, allow_area_overallocation: checked } : d))}
         />
         <CheckboxField
           label={t('settings.requireFullAllocation')}
-          checked={settings?.require_full_allocation ?? true}
+          checked={draft?.require_full_allocation ?? true}
           disabled={!isAdmin}
-          onChange={(checked) => void patchSettings({ require_full_allocation: checked })}
+          onChange={(checked) => setDraft((d) => (d ? { ...d, require_full_allocation: checked } : d))}
         />
-        {!isAdmin ? <p className="text-sm text-slate-600 dark:text-slate-400">{t('settings.adminOnly')}</p> : null}
+        {isAdmin ? (
+          <Button loading={busy === 'settings'} disabled={!settingsDirty} onClick={() => void saveSettings()}>
+            {busy === 'settings' ? t('common.saving') : t('common.save')}
+          </Button>
+        ) : (
+          <p className="text-sm text-slate-600 dark:text-slate-400">{t('settings.adminOnly')}</p>
+        )}
       </Card>
 
       <Card className="mb-4">
@@ -204,21 +276,21 @@ export default function SettingsPage() {
         <p className="mb-3 text-sm text-slate-600 dark:text-slate-400">{t('settings.conversionHelp')}</p>
         <ul className="space-y-2">
           {areaUnits.map((unit) => (
-            <li key={unit.id} className="flex items-end gap-3">
-              <div className="flex-1">
-                <NumberField
-                  label={`1 ${unit.label_en} = ? ${t('common.acres')}`}
-                  defaultValue={unit.factor_to_base}
-                  disabled={!isAdmin || unit.code === 'acre'}
-                  onBlur={(e) => {
-                    const factor = Number(e.target.value);
-                    if (isAdmin && factor > 0 && factor !== unit.factor_to_base) void patchUnit(unit, factor);
-                  }}
-                />
-              </div>
+            <li key={unit.id}>
+              <NumberField
+                label={`1 ${unit.label_en} = ? ${t('common.acres')}`}
+                value={factors[unit.id] ?? ''}
+                disabled={!isAdmin || unit.code === 'acre'}
+                onChange={(e) => setFactors((current) => ({ ...current, [unit.id]: e.target.value }))}
+              />
             </li>
           ))}
         </ul>
+        {isAdmin ? (
+          <Button loading={busy === 'factors'} disabled={changedUnits.length === 0} onClick={() => void saveFactors()}>
+            {busy === 'factors' ? t('common.saving') : t('common.save')}
+          </Button>
+        ) : null}
       </Card>
 
       <Card className="mb-4">
