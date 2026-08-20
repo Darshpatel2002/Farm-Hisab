@@ -4,6 +4,9 @@
   "version": "1.0.0",
   "type": "module",
   "description": "Farm Hisab - farm management and profitability PWA for a small family farm",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
