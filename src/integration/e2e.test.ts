@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { supabase } from '../lib/supabase/client';
-import { insertRow, listRows, hardDeleteRow } from '../lib/supabase/crud';
+import { insertRow, listRows, hardDeleteRow, getRow, updateRow } from '../lib/supabase/crud';
 import { buildSeasonReport, type FinancialDataset } from '../lib/calculations/profit';
 import { allocateExpense } from '../lib/calculations/allocation';
 import { indexUnits, toAcres } from '../lib/calculations/units';
@@ -111,7 +111,8 @@ describe.skipIf(!RUN)('end-to-end against live Supabase', () => {
     expect(unitMap['area:vigha'].factor_to_base).toBeCloseTo(23 / 40.5, 6);
     expect(unitMap['area:guntha'].factor_to_base).toBeCloseTo(1 / 40.5, 6);
     expect(unitMap['area:hectare'].factor_to_base).toBeCloseTo(100 / 40.5, 6);
-    expect(unitMap['area:vigha'].factor_to_base / unitMap['area:guntha'].factor_to_base).toBeCloseTo(23, 6);
+    // Factors are stored to 8 decimal places, so the ratio is 23 to within ~2e-6.
+    expect(unitMap['area:vigha'].factor_to_base / unitMap['area:guntha'].factor_to_base).toBeCloseTo(23, 4);
     // 1 Man = 20 kg
     expect(unitMap['weight:man'].factor_to_base).toBe(20);
     expect(unitMap['weight:quintal'].factor_to_base).toBe(100);
@@ -416,7 +417,17 @@ describe.skipIf(!RUN)('end-to-end against live Supabase', () => {
     expect(report.byCategory.reduce((s, c) => s + c.amount, 0)).toBe(16300);
   });
 
-  it('11. keeps another household from reading this data (RLS)', async () => {
+  it('11. reads and updates household settings (keyed by household_id)', async () => {
+    const settings = await getRow('household_settings', householdA);
+    expect(settings).not.toBeNull();
+    expect(settings?.currency).toBe('INR');
+
+    await updateRow('household_settings', householdA, { default_area_unit: 'guntha', currency: 'INR' });
+    const updated = await getRow('household_settings', householdA);
+    expect(updated?.default_area_unit).toBe('guntha');
+  });
+
+  it('12. keeps another household from reading this data (RLS)', async () => {
     await supabase.auth.signOut();
     await signUp(userB, 'E2E Stranger');
     await signIn(userB);

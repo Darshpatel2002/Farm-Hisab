@@ -12,6 +12,15 @@ import type { TableName, Tables, UUID } from '../../types/db';
 
 type Row<T extends TableName> = Tables[T];
 
+/** Tables whose primary key is not called "id". */
+const PRIMARY_KEYS: Partial<Record<TableName, string>> = {
+  household_settings: 'household_id',
+};
+
+export function primaryKeyOf(table: TableName): string {
+  return PRIMARY_KEYS[table] ?? 'id';
+}
+
 function isOffline(): boolean {
   return typeof navigator !== 'undefined' && navigator.onLine === false;
 }
@@ -70,7 +79,7 @@ export async function listRows<T extends TableName>(table: T, options: ListOptio
 
 export async function getRow<T extends TableName>(table: T, id: UUID): Promise<Row<T> | null> {
   try {
-    const { data, error } = await supabase.from(table).select('*').eq('id', id).maybeSingle();
+    const { data, error } = await supabase.from(table).select('*').eq(primaryKeyOf(table), id).maybeSingle();
     if (error) throw error;
     return (data ?? null) as Row<T> | null;
   } catch (error) {
@@ -95,7 +104,7 @@ export async function countRows<T extends TableName>(table: T, match: Record<str
  * optimistic copy (with a client-generated id) is returned.
  */
 export async function insertRow<T extends TableName>(table: T, values: Record<string, unknown>): Promise<Row<T>> {
-  const payload = { id: crypto.randomUUID(), ...values };
+  const payload = primaryKeyOf(table) === 'id' ? { id: crypto.randomUUID(), ...values } : { ...values };
   if (isOffline()) {
     await enqueue({ table, op: 'insert', payload });
     return payload as Row<T>;
@@ -125,7 +134,7 @@ export async function updateRow<T extends TableName>(
     return { id, ...values } as Row<T>;
   }
   try {
-    const { data, error } = await supabase.from(table).update(values).eq('id', id).select().single();
+    const { data, error } = await supabase.from(table).update(values).eq(primaryKeyOf(table), id).select().single();
     if (error) throw error;
     return data as Row<T>;
   } catch (error) {
@@ -146,7 +155,7 @@ export async function softDeleteRow<T extends TableName>(table: T, id: UUID): Pr
     return;
   }
   try {
-    const { error } = await supabase.from(table).update(values).eq('id', id);
+    const { error } = await supabase.from(table).update(values).eq(primaryKeyOf(table), id);
     if (error) throw error;
   } catch (error) {
     const appError = toAppError(error);
@@ -160,7 +169,7 @@ export async function softDeleteRow<T extends TableName>(table: T, id: UUID): Pr
 
 export async function hardDeleteRow<T extends TableName>(table: T, id: UUID): Promise<void> {
   try {
-    const { error } = await supabase.from(table).delete().eq('id', id);
+    const { error } = await supabase.from(table).delete().eq(primaryKeyOf(table), id);
     if (error) throw error;
   } catch (error) {
     throw toAppError(error);

@@ -1,5 +1,6 @@
 import { get, set } from 'idb-keyval';
 import { supabase } from '../supabase/client';
+import { primaryKeyOf } from '../supabase/crud';
 import { logError } from '../errors';
 import type { TableName } from '../../types/db';
 
@@ -90,7 +91,11 @@ export async function enqueue(mutation: Omit<PendingMutation, 'id' | 'queuedAt' 
 /** True when a row on the server has been changed after our local edit. */
 async function serverIsNewer(item: PendingMutation): Promise<boolean> {
   if (!item.rowId || !item.baseUpdatedAt) return false;
-  const { data } = await supabase.from(item.table).select('updated_at').eq('id', item.rowId).maybeSingle();
+  const { data } = await supabase
+    .from(item.table)
+    .select('updated_at')
+    .eq(primaryKeyOf(item.table), item.rowId)
+    .maybeSingle();
   const serverUpdatedAt = (data as { updated_at?: string } | null)?.updated_at;
   if (!serverUpdatedAt) return false;
   return new Date(serverUpdatedAt).getTime() > new Date(item.baseUpdatedAt).getTime();
@@ -111,7 +116,7 @@ async function applyMutation(item: PendingMutation): Promise<void> {
   }
 
   if (item.op === 'update') {
-    const { error } = await supabase.from(item.table).update(item.payload).eq('id', item.rowId);
+    const { error } = await supabase.from(item.table).update(item.payload).eq(primaryKeyOf(item.table), item.rowId);
     if (error) throw error;
     return;
   }
@@ -119,7 +124,7 @@ async function applyMutation(item: PendingMutation): Promise<void> {
   const { error } = await supabase
     .from(item.table)
     .update({ deleted_at: new Date().toISOString() })
-    .eq('id', item.rowId);
+    .eq(primaryKeyOf(item.table), item.rowId);
   if (error) throw error;
 }
 
