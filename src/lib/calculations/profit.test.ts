@@ -97,6 +97,51 @@ describe('shared expenses are never double counted', () => {
   });
 });
 
+describe('expense detail per farm and per crop', () => {
+  const data = dataset({
+    farms: [farm('f1', 2, 'Farm One'), farm('f2', 3, 'Farm Two')],
+    crops: [crop('c1', 'Groundnut'), crop('c2', 'Cotton')],
+    allocations: [allocation('a1', 'f1', 'c1', 2), allocation('a2', 'f2', 'c2', 3)],
+    expenses: [
+      expense('e1', 5000, { farm_id: 'f1', allocation_id: 'a1', category: 'seeds' }),
+      expense('e2', 3000, { farm_id: 'f1', allocation_id: 'a1', category: 'labour' }),
+      expense('e3', 2000, { farm_id: 'f1', allocation_id: 'a1', category: 'seeds' }),
+      expense('e4', 4000, { farm_id: 'f2', allocation_id: 'a2', category: 'irrigation' }),
+    ],
+    expenseAllocations: [
+      expenseAllocation('ea1', 'e1', 'f1', 5000, 'a1'),
+      expenseAllocation('ea2', 'e2', 'f1', 3000, 'a1'),
+      expenseAllocation('ea3', 'e3', 'f1', 2000, 'a1'),
+      expenseAllocation('ea4', 'e4', 'f2', 4000, 'a2'),
+    ],
+  });
+  const report = buildSeasonReport(data);
+
+  it("groups a farm's expenses by category, biggest first", () => {
+    const farmOne = report.expensesByFarm.find((f) => f.id === 'f1');
+    expect(farmOne?.total).toBe(10000);
+    expect(farmOne?.categories.map((c) => c.category)).toEqual(['seeds', 'labour']);
+    // Two separate seed entries are added together.
+    expect(farmOne?.categories[0].amount).toBe(7000);
+    expect(farmOne?.categories[0].share).toBe(70);
+  });
+
+  it('groups the same expenses by crop', () => {
+    const groundnut = report.expensesByCrop.find((c) => c.id === 'c1');
+    expect(groundnut?.total).toBe(10000);
+    expect(report.expensesByCrop.find((c) => c.id === 'c2')?.total).toBe(4000);
+  });
+
+  it('sorts farms by how much they cost', () => {
+    expect(report.expensesByFarm.map((f) => f.id)).toEqual(['f1', 'f2']);
+  });
+
+  it('adds up to the season total', () => {
+    const sum = report.expensesByFarm.reduce((s, f) => s + f.total, 0);
+    expect(sum).toBe(report.totals.cost);
+  });
+});
+
 describe('multiple harvests, farms and crops', () => {
   const data = dataset({
     farms: [farm('f1', 2), farm('f2', 3)],

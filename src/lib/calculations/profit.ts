@@ -117,6 +117,14 @@ export interface CategoryTotal {
   share: number;
 }
 
+/** Category-wise expense detail for a single farm or crop. */
+export interface CategoryBreakdown {
+  id: string;
+  name: string;
+  total: number;
+  categories: CategoryTotal[];
+}
+
 export interface MonthlyFlow {
   month: string;
   spent: number;
@@ -131,6 +139,8 @@ export interface SeasonReport {
   byFarm: FarmReport[];
   byCrop: CropReport[];
   byCategory: CategoryTotal[];
+  expensesByFarm: CategoryBreakdown[];
+  expensesByCrop: CategoryBreakdown[];
   monthly: MonthlyFlow[];
 }
 
@@ -251,6 +261,8 @@ export function buildSeasonReport(dataset: FinancialDataset): SeasonReport {
   const byFarm = new Map<string, Accumulator>();
   const byCrop = new Map<string, Accumulator>();
   const byCategory = new Map<string, number>();
+  const byFarmCategory = new Map<string, Map<string, number>>();
+  const byCropCategory = new Map<string, Map<string, number>>();
   const monthly = new Map<string, { spent: number; received: number }>();
 
   const farmCropIds = new Map<string, Set<string>>();
@@ -289,6 +301,14 @@ export function buildSeasonReport(dataset: FinancialDataset): SeasonReport {
     const farmAcc = bucket(byFarm, line.farm_id, zeroAccumulator);
     farmAcc.cost += amount;
     if (isLabour) farmAcc.labourCost += amount;
+
+    const category = expense?.category ?? 'other';
+    const farmCategories = bucket(byFarmCategory, line.farm_id, () => new Map<string, number>());
+    farmCategories.set(category, round((farmCategories.get(category) ?? 0) + amount, 2));
+    if (cropId) {
+      const cropCategories = bucket(byCropCategory, cropId, () => new Map<string, number>());
+      cropCategories.set(category, round((cropCategories.get(category) ?? 0) + amount, 2));
+    }
 
     if (allocation) {
       const allocAcc = bucket(byAllocation, allocation.id, zeroAccumulator);
@@ -477,6 +497,28 @@ export function buildSeasonReport(dataset: FinancialDataset): SeasonReport {
     .map(([category, amount]) => ({ category, amount, share: round(safeDivide(amount, grandCost) * 100, 1) }))
     .sort((a, b) => b.amount - a.amount);
 
+  const toBreakdown = (
+    source: Map<string, Map<string, number>>,
+    nameOf: (id: string) => string,
+  ): CategoryBreakdown[] =>
+    [...source.entries()]
+      .map(([id, perCategory]) => {
+        const total = round([...perCategory.values()].reduce((sum, value) => sum + value, 0), 2);
+        return {
+          id,
+          name: nameOf(id),
+          total,
+          categories: [...perCategory.entries()]
+            .map(([category, amount]) => ({
+              category,
+              amount,
+              share: round(safeDivide(amount, total) * 100, 1),
+            }))
+            .sort((a, b) => b.amount - a.amount),
+        };
+      })
+      .sort((a, b) => b.total - a.total);
+
   let cumulativeSpent = 0;
   let cumulativeReceived = 0;
   const monthlyFlow: MonthlyFlow[] = [...monthly.entries()]
@@ -505,6 +547,8 @@ export function buildSeasonReport(dataset: FinancialDataset): SeasonReport {
     byFarm: farmReports,
     byCrop: cropReports,
     byCategory: categories,
+    expensesByFarm: toBreakdown(byFarmCategory, (id) => farmById.get(id)?.name ?? ''),
+    expensesByCrop: toBreakdown(byCropCategory, (id) => cropById.get(id)?.name ?? ''),
     monthly: monthlyFlow,
   };
 }

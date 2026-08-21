@@ -18,6 +18,7 @@ import {
   rankBy,
 } from '../lib/calculations/ranking';
 import { formatCurrency, formatNumber, safeDivide } from '../lib/formatting/number';
+import { unitFactor, unitLabel } from '../lib/calculations/units';
 import { formatDate, formatMonthLabel } from '../lib/formatting/date';
 import { downloadCsv, timestampedName } from '../lib/export/files';
 import { EXPENSE_CATEGORIES } from '../types/db';
@@ -26,6 +27,7 @@ import type { CoreMetrics, CropReport, FarmReport } from '../lib/calculations/pr
 type Tab =
   | 'summary'
   | 'costRevenue'
+  | 'expenseDetail'
   | 'farms'
   | 'crops'
   | 'best'
@@ -39,6 +41,7 @@ type Tab =
 const TABS: Array<{ id: Tab; labelKey: string }> = [
   { id: 'summary', labelKey: 'reports.seasonSummary' },
   { id: 'costRevenue', labelKey: 'reports.costVsRevenue' },
+  { id: 'expenseDetail', labelKey: 'reports.expenseDetail' },
   { id: 'farms', labelKey: 'reports.farmRanking' },
   { id: 'crops', labelKey: 'reports.cropRanking' },
   { id: 'best', labelKey: 'reports.bestCrops' },
@@ -148,6 +151,7 @@ export default function ReportsPage() {
 
       {tab === 'summary' ? <SummaryTab report={report} cropLabel={cropLabel} /> : null}
       {tab === 'costRevenue' ? <CostRevenueTab report={report} cropLabel={cropLabel} /> : null}
+      {tab === 'expenseDetail' ? <ExpenseDetailTab report={report} cropName={cropName} /> : null}
       {tab === 'farms' ? <RankingTab title={t('reports.farmRanking')} ranks={farmRanks} labelOf={(f: FarmReport) => f.name} /> : null}
       {tab === 'crops' ? <RankingTab title={t('reports.cropRanking')} ranks={cropRanks} labelOf={cropLabel} /> : null}
       {tab === 'best' ? <BestCropsTab best={best} cropLabel={cropLabel} /> : null}
@@ -287,69 +291,171 @@ export default function ReportsPage() {
           />
         </>
       ) : null}
-      {tab === 'sales' ? (
-        <Card>
-          <SectionTitle
-            title={t('reports.saleReport')}
-            action={
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() =>
-                  downloadCsv(
-                    timestampedName('sales', 'csv'),
-                    dataset.sales.map((s) => ({
-                      date: s.date,
-                      buyer: s.buyer,
-                      crop: cropName(s.crop_id),
-                      quantity: s.quantity,
-                      unit: s.unit,
-                      price_per_unit: s.price_per_unit,
-                      gross_amount: s.gross_amount,
-                      deductions: s.transport_cost + s.commission + s.other_deductions,
-                      net_amount: s.net_amount,
-                      payment_status: s.payment_status,
-                    })),
-                  )
-                }
-              >
-                {t('reports.downloadCsv')}
-              </Button>
-            }
-          />
-          {dataset.sales.length === 0 ? (
-            <p className="py-4 text-base text-slate-600 dark:text-slate-400">{t('sales.empty')}</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[520px] text-left text-base">
-                <thead>
-                  <tr className="border-b border-slate-200 dark:border-slate-700">
-                    <th scope="col" className="py-2">{t('common.date')}</th>
-                    <th scope="col" className="py-2">{t('common.crop')}</th>
-                    <th scope="col" className="py-2 text-right">{t('sales.quantitySold')}</th>
-                    <th scope="col" className="py-2 text-right">{t('sales.averagePrice')}</th>
-                    <th scope="col" className="py-2 text-right">{t('sales.netRevenue')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {dataset.sales.map((sale) => (
-                    <tr key={sale.id} className="border-b border-slate-100 dark:border-slate-800">
-                      <td className="py-2">{formatDate(sale.date)}</td>
-                      <td className="py-2">{cropName(sale.crop_id) || sale.buyer}</td>
-                      <td className="py-2 text-right">
-                        {formatNumber(sale.quantity, 2)} {sale.unit}
-                      </td>
-                      <td className="py-2 text-right">{formatCurrency(sale.price_per_unit)}</td>
-                      <td className="py-2 text-right font-semibold">{formatCurrency(sale.net_amount)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </Card>
-      ) : null}
+      {tab === 'sales' ? <SaleReportTab report={report} dataset={dataset} cropName={cropName} /> : null}
     </section>
+  );
+}
+
+/**
+ * Sale report: what each farm and each crop actually produced, how much of it
+ * was sold, and what it earned. Quantities follow the household's preferred
+ * weight unit (Man, quintal, ...) rather than a fixed internal one.
+ */
+function SaleReportTab({
+  report,
+  dataset,
+  cropName,
+}: {
+  report: ReturnType<typeof useSeasonReport>['report'];
+  dataset: ReturnType<typeof useSeasonReport>['dataset'];
+  cropName: (id: string | null | undefined) => string;
+}) {
+  const { t, i18n } = useTranslation();
+  const { unitMap, settings } = useAppData();
+
+  const code = settings?.default_weight_unit ?? 'quintal';
+  const kgPerUnit = unitFactor(unitMap, 'weight', code) || 100;
+  const unitName = unitLabel(unitMap, 'weight', code, i18n.language);
+  // The engine normalises every weight to quintal (100 kg).
+  const toDisplay = (quintal: number) => (quintal * 100) / kgPerUnit;
+  const qty = (quintal: number) => `${formatNumber(toDisplay(quintal), 2)} ${unitName}`;
+
+  const totals = report.totals;
+  const unsold = Math.max(totals.yieldQuintal - totals.soldQuintal, 0);
+
+  const table = (
+    title: string,
+    rows: Array<{ id: string; label: string; produced: number; sold: number; income: number }>,
+  ) => (
+    <Card className="mb-4">
+      <SectionTitle title={title} />
+      {rows.length === 0 ? (
+        <p className="py-4 text-base text-slate-600 dark:text-slate-400">{t('reports.notEnoughData')}</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[520px] text-left text-base">
+            <thead>
+              <tr className="border-b border-slate-200 dark:border-slate-700">
+                <th scope="col" className="py-2">{t('common.total')}</th>
+                <th scope="col" className="py-2 text-right">{t('reports.production')}</th>
+                <th scope="col" className="py-2 text-right">{t('reports.sold')}</th>
+                <th scope="col" className="py-2 text-right">{t('sales.averagePrice')}</th>
+                <th scope="col" className="py-2 text-right">{t('sales.netRevenue')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row.id} className="border-b border-slate-100 dark:border-slate-800">
+                  <th scope="row" className="py-2 font-semibold">{row.label}</th>
+                  <td className="py-2 text-right">{qty(row.produced)}</td>
+                  <td className="py-2 text-right">{qty(row.sold)}</td>
+                  <td className="py-2 text-right">
+                    {row.sold > 0 ? formatCurrency(row.income / toDisplay(row.sold)) : '-'}
+                  </td>
+                  <td className="py-2 text-right font-semibold">{formatCurrency(row.income)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Card>
+  );
+
+  return (
+    <>
+      <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatCard label={t('reports.totalProduction')} value={qty(totals.yieldQuintal)} />
+        <StatCard label={t('reports.sold')} value={qty(totals.soldQuintal)} />
+        <StatCard label={t('reports.unsold')} value={qty(unsold)} />
+        <StatCard label={t('sales.netRevenue')} value={formatCurrency(totals.revenue)} />
+      </div>
+
+      {table(
+        t('reports.productionByFarm'),
+        report.byFarm.map((farm) => ({
+          id: farm.farmId,
+          label: farm.name,
+          produced: farm.yieldQuintal,
+          sold: farm.soldQuintal,
+          income: farm.revenue,
+        })),
+      )}
+
+      {table(
+        t('reports.productionByCrop'),
+        report.byCrop.map((crop) => ({
+          id: crop.cropId,
+          label: cropName(crop.cropId) || crop.name,
+          produced: crop.yieldQuintal,
+          sold: crop.soldQuintal,
+          income: crop.revenue,
+        })),
+      )}
+
+      <Card>
+        <SectionTitle
+          title={t('reports.saleReport')}
+          action={
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() =>
+                downloadCsv(
+                  timestampedName('sales', 'csv'),
+                  dataset.sales.map((s) => ({
+                    date: s.date,
+                    buyer: s.buyer,
+                    crop: cropName(s.crop_id),
+                    quantity: s.quantity,
+                    unit: s.unit,
+                    price_per_unit: s.price_per_unit,
+                    gross_amount: s.gross_amount,
+                    deductions: s.transport_cost + s.commission + s.other_deductions,
+                    net_amount: s.net_amount,
+                    payment_status: s.payment_status,
+                  })),
+                )
+              }
+            >
+              {t('reports.downloadCsv')}
+            </Button>
+          }
+        />
+        {dataset.sales.length === 0 ? (
+          <p className="py-4 text-base text-slate-600 dark:text-slate-400">{t('sales.empty')}</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[560px] text-left text-base">
+              <thead>
+                <tr className="border-b border-slate-200 dark:border-slate-700">
+                  <th scope="col" className="py-2">{t('common.date')}</th>
+                  <th scope="col" className="py-2">{t('common.crop')}</th>
+                  <th scope="col" className="py-2">{t('common.buyer')}</th>
+                  <th scope="col" className="py-2 text-right">{t('sales.quantitySold')}</th>
+                  <th scope="col" className="py-2 text-right">{t('sales.pricePerUnit')}</th>
+                  <th scope="col" className="py-2 text-right">{t('sales.netRevenue')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dataset.sales.map((sale) => (
+                  <tr key={sale.id} className="border-b border-slate-100 dark:border-slate-800">
+                    <td className="py-2">{formatDate(sale.date)}</td>
+                    <td className="py-2">{cropName(sale.crop_id)}</td>
+                    <td className="py-2">{sale.buyer}</td>
+                    <td className="py-2 text-right">
+                      {formatNumber(sale.quantity, 2)} {sale.unit}
+                    </td>
+                    <td className="py-2 text-right">{formatCurrency(sale.price_per_unit)}</td>
+                    <td className="py-2 text-right font-semibold">{formatCurrency(sale.net_amount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+    </>
   );
 }
 
@@ -365,16 +471,21 @@ function SummaryTab({
   const bestFarm = rankBy(report.byFarm, 'profit', 1)[0]?.item ?? null;
   const bestCrop = rankBy(report.byCrop, 'profitPerAcre', 1)[0]?.item ?? null;
   const worstCrop = [...report.byCrop].sort((a, b) => a.profitPerAcre - b.profitPerAcre)[0] ?? null;
-  const costliestCrop = rankBy(report.byCrop, 'cost', 1)[0]?.item ?? null;
+  // rankBy treats "cost" as lower-is-better, so the dearest crop is sorted here.
+  const costliestCrop = [...report.byCrop].sort((a, b) => b.cost - a.cost)[0] ?? null;
   const highestYield = rankBy(report.byCrop, 'yieldPerAcre', 1)[0]?.item ?? null;
 
+  const byCostPerAcre = [...report.byCrop].sort((a, b) => b.costPerAcre - a.costPerAcre);
+  const dearestPerAcre = byCostPerAcre[0] ?? null;
+  const cheapestPerAcre = byCostPerAcre[byCostPerAcre.length - 1] ?? null;
+
   const costComparison =
-    bestCrop && costliestCrop && bestCrop.cropId !== costliestCrop.cropId && bestCrop.costPerAcre > 0
+    dearestPerAcre && cheapestPerAcre && dearestPerAcre.cropId !== cheapestPerAcre.cropId && cheapestPerAcre.costPerAcre > 0
       ? t('reports.interpretationCostCompare', {
-          cropA: cropLabel(costliestCrop),
-          cropB: cropLabel(bestCrop),
+          cropA: cropLabel(dearestPerAcre),
+          cropB: cropLabel(cheapestPerAcre),
           percent: `${formatNumber(
-            safeDivide(costliestCrop.costPerAcre - bestCrop.costPerAcre, bestCrop.costPerAcre) * 100,
+            safeDivide(dearestPerAcre.costPerAcre - cheapestPerAcre.costPerAcre, cheapestPerAcre.costPerAcre) * 100,
             0,
           )}%`,
         })
@@ -505,6 +616,56 @@ function CostRevenueTab({
       <Card>
         {rows(report.byCrop.map((crop) => ({ key: crop.cropId, label: cropLabel(crop), metrics: crop })))}
       </Card>
+    </>
+  );
+}
+
+function ExpenseDetailTab({
+  report,
+  cropName,
+}: {
+  report: ReturnType<typeof useSeasonReport>['report'];
+  cropName: (id: string | null | undefined) => string;
+}) {
+  const { t } = useTranslation();
+
+  const section = (title: string, groups: typeof report.expensesByFarm, label: (group: { id: string; name: string }) => string) => (
+    <Card className="mb-4">
+      <SectionTitle title={title} />
+      {groups.length === 0 ? (
+        <p className="py-4 text-base text-slate-600 dark:text-slate-400">{t('reports.notEnoughData')}</p>
+      ) : (
+        <ul className="space-y-4">
+          {groups.map((group) => (
+            <li key={group.id} className="rounded-2xl border border-slate-200 p-3 dark:border-slate-700">
+              <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+                <h3 className="text-lg font-bold">{label(group)}</h3>
+                <span className="text-lg font-bold">{formatCurrency(group.total)}</span>
+              </div>
+              <ul className="space-y-1">
+                {group.categories.map((row) => (
+                  <li key={row.category} className="flex items-baseline justify-between gap-3 text-base">
+                    <span>{t(`categories.${row.category}`)}</span>
+                    <span className="text-right">
+                      <span className="font-semibold">{formatCurrency(row.amount)}</span>
+                      <span className="ml-2 text-sm text-slate-600 dark:text-slate-400">
+                        {formatNumber(row.share, 1)}%
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+
+  return (
+    <>
+      {section(t('reports.expenseByFarmDetail'), report.expensesByFarm, (group) => group.name)}
+      {section(t('reports.expenseByCropDetail'), report.expensesByCrop, (group) => cropName(group.id) || group.name)}
     </>
   );
 }
