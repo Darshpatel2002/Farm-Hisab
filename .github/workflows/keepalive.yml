@@ -1,0 +1,83 @@
+name: Keep Supabase awake
+
+# Supabase pauses Free-plan projects after 7 days without activity, which would
+# leave the app broken until someone restores it by hand. Farming is seasonal,
+# so a quiet month is normal. This job touches the database every 3 days.
+on:
+  schedule:
+    - cron: '0 6 */3 * *'
+  workflow_dispatch:
+  # Also runs when this file changes, so a edit can be verified immediately.
+  push:
+    paths:
+      - '.github/workflows/keepalive.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Ping the database
+        env:
+          URL: ${{ vars.VITE_SUPABASE_URL }}
+          KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$URL" ] || [ -z "$KEY" ]; then
+            echo "::error::Repository variables VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY are not set."
+            exit 1
+          fi
+
+          # Reaching PostgREST is not enough - the request has to make Postgres
+          # actually run a query. Selecting from a protected table does that:
+          # Postgres answers 401 with code 42501 (permission denied), which
+          # proves the database served the request.
+          rest=$(curl -sS -o /tmp/rest.json -w '%{http_code}' --max-time 30 \
+            -H "apikey: $KEY" \
+            "$URL/rest/v1/farms?select=id&limit=1")
+          echo "REST  -> HTTP $rest"
+          cat /tmp/rest.json
+
+          auth=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 30 \
+            -H "apikey: $KEY" "$URL/auth/v1/settings")
+          echo "Auth  -> HTTP $auth"
+
+          case "$rest" in
+            200|401|403) ;;
+            *)
+              echo "::error::Database did not respond as expected (HTTP $rest). The project may be paused."
+              exit 1
+              ;;
+          esac
+
+          if [ "$auth" != "200" ]; then
+            echo "::error::Auth service returned HTTP $auth"
+            exit 1
+          fi
+
+          echo "Supabase is awake."
+
+      - name: Keep scheduled workflows enabled
+        # GitHub switches off scheduled workflows in a repository that has had no
+        # commits for 60 days, which would silently stop the ping above. A commit
+        # every ~40 days is enough to prevent that.
+        run: |
+          last=$(git log -1 --format=%ct)
+          days=$(( ( $(date +%s) - last ) / 86400 ))
+          echo "Last commit was $days day(s) ago"
+          if [ "$days" -lt 40 ]; then
+            echo "Repository is active, nothing to do."
+            exit 0
+          fi
+          mkdir -p .github
+          date -u +"%Y-%m-%dT%H:%M:%SZ" > .github/last-keepalive.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/last-keepalive.txt
+          git commit -m "chore: keep scheduled workflows enabled"
+          git push
