@@ -9,7 +9,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
 
-const GEMINI_MODEL = 'gemini-2.0-flash';
+const GEMINI_MODELS = ['gemini-2.0-flash', 'gemini-flash-latest', 'gemini-1.5-flash'];
 const MAX_QUESTION_CHARS = 1500;
 const MAX_HISTORY = 10;
 
@@ -96,38 +96,54 @@ Deno.serve(async (request: Request) => {
 
   const systemPrompt = buildSystemPrompt(language, context);
 
-  try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: systemPrompt }] },
-          contents: [
-            ...history.map((m) => ({ role: m.role, parts: [{ text: m.text }] })),
-            { role: 'user', parts: [{ text: question }] },
-          ],
-          generationConfig: { temperature: 0.4, maxOutputTokens: 1200, topP: 0.9 },
-        }),
-      },
-    );
+  const body = JSON.stringify({
+    systemInstruction: { parts: [{ text: systemPrompt }] },
+    contents: [
+      ...history.map((m) => ({ role: m.role, parts: [{ text: m.text }] })),
+      { role: 'user', parts: [{ text: question }] },
+    ],
+    generationConfig: { temperature: 0.4, maxOutputTokens: 1200, topP: 0.9 },
+  });
 
-    if (!response.ok) {
-      console.error('gemini_error', response.status, await response.text());
-      return json({ error: 'ai_failed' }, 502);
+  let lastDetail = '';
+
+  // Model names move around; try the current ones in order.
+  for (const model of GEMINI_MODELS) {
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+        {
+          method: 'POST',
+          // Newer AI Studio keys (the "AQ." format) must be sent as a header.
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+          body,
+        },
+      );
+
+      if (!response.ok) {
+        lastDetail = `${model}: ${response.status} ${(await response.text()).slice(0, 400)}`;
+        console.error('gemini_error', lastDetail);
+        // Only a missing/blocked model is worth retrying with another name.
+        if (response.status === 404 || response.status === 400) continue;
+        return json({ error: 'ai_failed', detail: lastDetail }, 502);
+      }
+
+      const result = await response.json();
+      const answer: string =
+        result?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('') ?? '';
+
+      if (!answer.trim()) {
+        lastDetail = `${model}: empty response ${JSON.stringify(result).slice(0, 300)}`;
+        continue;
+      }
+      return json({ answer });
+    } catch (error) {
+      lastDetail = `${model}: ${error instanceof Error ? error.message : String(error)}`;
+      console.error('ai_request_failed', lastDetail);
     }
-
-    const result = await response.json();
-    const answer: string =
-      result?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('') ?? '';
-
-    if (!answer.trim()) return json({ error: 'ai_empty' }, 502);
-    return json({ answer });
-  } catch (error) {
-    console.error('ai_request_failed', error);
-    return json({ error: 'ai_failed' }, 502);
   }
+
+  return json({ error: 'ai_failed', detail: lastDetail }, 502);
 });
 
 function buildSystemPrompt(language: 'en' | 'gu', context: string): string {

@@ -41,7 +41,7 @@ function TypingDots() {
 
 export function FarmChat({ compact = false }: { compact?: boolean }) {
   const { t } = useTranslation();
-  const { turns, pending, errorKey, ask, reset } = useFarmChat();
+  const { turns, pending, errorKey, errorDetail, ask, reset } = useFarmChat();
   const [draft, setDraft] = useState('');
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -84,9 +84,12 @@ export function FarmChat({ compact = false }: { compact?: boolean }) {
         {pending ? <TypingDots /> : null}
 
         {errorKey ? (
-          <p role="alert" className="rounded-2xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-800 dark:bg-red-900/40 dark:text-red-200">
-            {t(errorKey)}
-          </p>
+          <div role="alert" className="rounded-2xl bg-red-50 px-4 py-3 dark:bg-red-900/40">
+            <p className="text-sm font-semibold text-red-800 dark:text-red-200">{t(errorKey)}</p>
+            {errorDetail ? (
+              <p className="mt-1 break-all font-mono text-xs text-red-700/80 dark:text-red-300/80">{errorDetail}</p>
+            ) : null}
+          </div>
         ) : null}
 
         <div ref={endRef} />

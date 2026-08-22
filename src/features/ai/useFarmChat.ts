@@ -22,6 +22,7 @@ export function useFarmChat() {
   const [turns, setTurns] = useState<ChatTurn[]>([]);
   const [pending, setPending] = useState(false);
   const [errorKey, setErrorKey] = useState<string | null>(null);
+  const [errorDetail, setErrorDetail] = useState<string | null>(null);
 
   const ask = useCallback(
     async (question: string) => {
@@ -32,19 +33,35 @@ export function useFarmChat() {
       setTurns((current) => [...current, { role: 'user', text: trimmed }]);
       setPending(true);
       setErrorKey(null);
+      setErrorDetail(null);
 
       try {
-        const { data, error } = await supabase.functions.invoke<{ answer?: string; error?: string }>('farm-ai', {
-          body: { question: trimmed, history, language: i18n.language === 'gu' ? 'gu' : 'en' },
-        });
+        const { data, error } = await supabase.functions.invoke<{ answer?: string; error?: string; detail?: string }>(
+          'farm-ai',
+          { body: { question: trimmed, history, language: i18n.language === 'gu' ? 'gu' : 'en' } },
+        );
 
-        if (error) throw error;
-        if (!data?.answer) throw new Error(data?.error ?? 'ai_failed');
+        // A non-2xx reply still carries our JSON body, so read it for the reason.
+        let payload = data ?? null;
+        if (error && 'context' in error) {
+          const response = (error as { context?: Response }).context;
+          if (response && typeof response.json === 'function') {
+            payload = await response.json().catch(() => null);
+          }
+        }
 
-        setTurns((current) => [...current, { role: 'model', text: data.answer as string }]);
+        if (payload?.answer) {
+          setTurns((current) => [...current, { role: 'model', text: payload.answer as string }]);
+          return;
+        }
+
+        const reason = payload?.error ?? (error instanceof Error ? error.message : 'ai_failed');
+        if (payload?.detail) console.error('farm-ai:', payload.detail);
+        setErrorKey(reason === 'not_configured' ? 'assistant.notConfigured' : 'assistant.failed');
+        setErrorDetail(payload?.detail ?? null);
       } catch (error) {
-        const message = error instanceof Error ? error.message : '';
-        setErrorKey(message.includes('not_configured') ? 'assistant.notConfigured' : 'assistant.failed');
+        setErrorKey('assistant.failed');
+        setErrorDetail(error instanceof Error ? error.message : null);
       } finally {
         setPending(false);
       }
@@ -55,7 +72,8 @@ export function useFarmChat() {
   const reset = useCallback(() => {
     setTurns([]);
     setErrorKey(null);
+    setErrorDetail(null);
   }, []);
 
-  return { turns, pending, errorKey, ask, reset };
+  return { turns, pending, errorKey, errorDetail, ask, reset };
 }

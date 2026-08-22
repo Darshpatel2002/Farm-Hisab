@@ -1,0 +1,7 @@
+project_id = "iflackjrvaylzjismjac"
+
+# The function verifies the caller itself (Authorization header + auth.getUser),
+# so the platform gate is off. With it on, the browser's CORS preflight - which
+# never carries an auth header - is rejected and the chat cannot connect.
+[functions.farm-ai]
+verify_jwt = false
