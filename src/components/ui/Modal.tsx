@@ -89,7 +89,12 @@ export function Modal({
           </button>
         </header>
 
-        <div ref={bodyRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5">
+        {/*
+          `flex-1` would set flex-basis to 0 and collapse this area inside an
+          auto-height panel. The default `flex: 0 1 auto` + `min-h-0` lets it
+          grow to the full form height, then shrink and scroll at the cap.
+        */}
+        <div ref={bodyRef} className="min-h-0 overflow-y-auto overscroll-contain px-5 py-5">
           {children}
         </div>
 

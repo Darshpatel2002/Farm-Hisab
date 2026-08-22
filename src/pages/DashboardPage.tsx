@@ -7,6 +7,7 @@ import { useAppData } from '../hooks/useAppData';
 import { useSeasonReport } from '../features/reports/useSeasonReport';
 import { rankBy } from '../lib/calculations/ranking';
 import { formatCurrency, formatNumber } from '../lib/formatting/number';
+import { FARM_SCENE } from '../components/layout/scenery';
 
 const QUICK_ACTIONS = [
   { to: '/expenses', key: 'expenses.add', icon: '💰', gradient: 'from-rose-500 to-red-700' },
@@ -24,6 +25,12 @@ const RANK_TONES = [
   'bg-orange-100 text-orange-800',
   'bg-slate-100 text-slate-600',
 ] as const;
+
+/** Fades the brand wash out towards the right so the artwork stays visible. */
+const SCRIM = {
+  maskImage: 'linear-gradient(to right, black 0%, black 42%, transparent 95%)',
+  WebkitMaskImage: 'linear-gradient(to right, black 0%, black 42%, transparent 95%)',
+} as const;
 
 export default function DashboardPage() {
   const { t } = useTranslation();
@@ -61,29 +68,33 @@ export default function DashboardPage() {
   if (farms.length === 0 && !isLoading) {
     return (
       <section>
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-500 via-brand-600 to-brand-800 p-8 text-white shadow-card">
-          <span aria-hidden="true" className="pointer-events-none absolute -right-10 -top-14 h-52 w-52 rounded-full bg-white/15 blur-2xl" />
-          <span aria-hidden="true" className="relative mb-3 inline-block animate-float text-6xl">🌱</span>
-          <h2 className="relative text-3xl font-extrabold tracking-tight">{t('onboarding.welcome')}</h2>
-          <p className="relative mt-2 max-w-lg text-lg text-white/85">{t('onboarding.intro')}</p>
+        <div className="relative overflow-hidden rounded-3xl text-white shadow-card">
+          <span aria-hidden="true" className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: FARM_SCENE }} />
+          <span aria-hidden="true" className="absolute inset-0 bg-gradient-to-br from-brand-600 via-brand-700 to-brand-800 opacity-90" style={SCRIM} />
+          <span aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+          <div className="relative p-8">
+            <span aria-hidden="true" className="mb-3 inline-block animate-float text-6xl drop-shadow">🌱</span>
+            <h2 className="text-3xl font-extrabold tracking-tight drop-shadow">{t('onboarding.welcome')}</h2>
+            <p className="mt-2 max-w-lg text-lg text-white/90">{t('onboarding.intro')}</p>
 
-          <ol className="relative mt-6 grid gap-2 sm:grid-cols-2">
-            {['step1', 'step2', 'step3', 'step4', 'step5'].map((step, index) => (
-              <li key={step} className="flex items-center gap-3 rounded-2xl bg-white/15 px-4 py-3 backdrop-blur-sm">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/25 text-sm font-extrabold">
-                  {index + 1}
-                </span>
-                <span className="font-semibold">{t(`onboarding.${step}`)}</span>
-              </li>
-            ))}
-          </ol>
+            <ol className="mt-6 grid gap-2 sm:grid-cols-2">
+              {['step1', 'step2', 'step3', 'step4', 'step5'].map((step, index) => (
+                <li key={step} className="flex items-center gap-3 rounded-2xl bg-white/15 px-4 py-3 backdrop-blur-sm">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/25 text-sm font-extrabold">
+                    {index + 1}
+                  </span>
+                  <span className="font-semibold">{t(`onboarding.${step}`)}</span>
+                </li>
+              ))}
+            </ol>
 
-          <Link
-            to="/farms"
-            className="relative mt-7 inline-flex min-h-[56px] items-center rounded-2xl bg-white px-8 text-lg font-extrabold text-brand-700 shadow-lift transition hover:-translate-y-0.5"
-          >
-            {t('onboarding.start')}
-          </Link>
+            <Link
+              to="/farms"
+              className="mt-7 inline-flex min-h-[56px] items-center rounded-2xl bg-white px-8 text-lg font-extrabold text-brand-700 shadow-lift transition hover:-translate-y-0.5"
+            >
+              {t('onboarding.start')}
+            </Link>
+          </div>
         </div>
       </section>
     );
@@ -97,12 +108,13 @@ export default function DashboardPage() {
   return (
     <section>
       {/* Season hero - the anchor for the whole screen. */}
-      <div className="relative mb-6 overflow-hidden rounded-3xl bg-gradient-to-br from-brand-500 via-brand-600 to-brand-800 p-6 shadow-card sm:p-8">
-        <span aria-hidden="true" className="pointer-events-none absolute -right-12 -top-16 h-56 w-56 rounded-full bg-white/15 blur-2xl" />
-        <span aria-hidden="true" className="pointer-events-none absolute -bottom-24 left-1/4 h-56 w-56 rounded-full bg-black/10 blur-2xl" />
-        <span aria-hidden="true" className="pointer-events-none absolute right-6 top-6 hidden animate-float text-6xl opacity-25 sm:block">🌾</span>
+      <div className="relative mb-6 overflow-hidden rounded-3xl shadow-card">
+        <span aria-hidden="true" className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: FARM_SCENE }} />
+        <span aria-hidden="true" className="absolute inset-0 bg-gradient-to-br from-brand-600 via-brand-700 to-brand-800 opacity-90" style={SCRIM} />
+        <span aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+        <span aria-hidden="true" className="absolute right-8 top-8 hidden animate-float text-6xl drop-shadow-lg sm:block">🌾</span>
 
-        <div className="relative">
+        <div className="relative p-6 sm:p-8">
           <p className="text-sm font-bold uppercase tracking-widest text-white/70">{t('dashboard.currentSeason')}</p>
           <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
             {season?.name ?? t('dashboard.noSeason')}

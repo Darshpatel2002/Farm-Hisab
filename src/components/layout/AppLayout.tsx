@@ -7,6 +7,7 @@ import { useSyncStatus } from '../../hooks/usePreferences';
 import { flushQueue } from '../../lib/offline/queue';
 import { ExitGuard } from './ExitGuard';
 import { BRAND_GRADIENT, usePageTheme } from './pageTheme';
+import { FIELD_STRIP } from './scenery';
 
 /**
  * Desktop: sidebar navigation.
@@ -167,6 +168,12 @@ export function AppLayout() {
             'radial-gradient(900px 480px at 12% -8%, rgba(61,148,64,0.16), transparent 62%),' +
             'radial-gradient(760px 420px at 100% 4%, rgba(251,201,77,0.14), transparent 58%)',
         }}
+      />
+      {/* Crop silhouette anchoring the bottom of every screen. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-x-0 bottom-0 -z-10 h-40 bg-bottom bg-repeat-x"
+        style={{ backgroundImage: FIELD_STRIP, backgroundSize: 'cover' }}
       />
 
       {/* Desktop sidebar - stays put while the page scrolls. */}

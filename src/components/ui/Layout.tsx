@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Spinner } from './Button';
 import { usePageTheme } from '../layout/pageTheme';
+import { FARM_SCENE } from '../layout/scenery';
 
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
   return <div className={`card ${className}`}>{children}</div>;
@@ -20,26 +22,41 @@ export function SectionTitle({ title, action }: { title: string; action?: ReactN
 }
 
 export function PageHeader({ title, subtitle, action }: { title: string; subtitle?: string; action?: ReactNode }) {
+  const { t } = useTranslation();
   const theme = usePageTheme();
   return (
-    <header className={`relative mb-6 overflow-hidden rounded-3xl bg-gradient-to-br ${theme.gradient} p-6 shadow-card`}>
+    <header className="relative mb-6 min-h-[150px] overflow-hidden rounded-3xl shadow-card">
+      {/* Farmland vista at full strength... */}
+      <span
+        aria-hidden="true"
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: FARM_SCENE }}
+      />
+      {/* ...with a scrim that is dense behind the text and clear over the artwork. */}
+      <span
+        aria-hidden="true"
+        className={`absolute inset-0 bg-gradient-to-r ${theme.gradient} opacity-95`}
+        style={{
+          maskImage: 'linear-gradient(to right, black 0%, black 40%, transparent 92%)',
+          WebkitMaskImage: 'linear-gradient(to right, black 0%, black 40%, transparent 92%)',
+        }}
+      />
+      <span aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-black/35 to-transparent" />
       {/* Section motif keeps each tab recognisable while the colour stays constant. */}
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 opacity-20 brightness-0 invert"
+        className="absolute inset-0 opacity-[0.13] brightness-0 invert"
         style={{ backgroundImage: theme.motif, backgroundRepeat: 'repeat' }}
       />
-      {/* Decorative light blooms keep the band from looking flat. */}
-      <span aria-hidden="true" className="pointer-events-none absolute -right-10 -top-16 h-48 w-48 rounded-full bg-white/15 blur-2xl" />
-      <span aria-hidden="true" className="pointer-events-none absolute -bottom-20 left-1/3 h-44 w-44 rounded-full bg-black/10 blur-2xl" />
-      <span aria-hidden="true" className="pointer-events-none absolute right-6 top-1/2 hidden -translate-y-1/2 text-7xl opacity-20 sm:block">
-        {theme.icon}
-      </span>
 
-      <div className="relative flex flex-wrap items-start justify-between gap-4">
+      <div className="relative flex flex-wrap items-center justify-between gap-4 p-6 sm:p-7">
         <div className="min-w-0">
-          <h1 className="text-3xl font-extrabold tracking-tight text-white drop-shadow-sm">{title}</h1>
-          {subtitle ? <p className="mt-1.5 max-w-xl text-base font-medium text-white/85">{subtitle}</p> : null}
+          <p className="mb-1 flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.2em] text-white/70">
+            <span aria-hidden="true" className="text-base">{theme.icon}</span>
+            {t('app.name')}
+          </p>
+          <h1 className="text-3xl font-extrabold tracking-tight text-white drop-shadow sm:text-4xl">{title}</h1>
+          {subtitle ? <p className="mt-1.5 max-w-xl text-base font-medium text-white/90 drop-shadow-sm">{subtitle}</p> : null}
         </div>
         {action}
       </div>

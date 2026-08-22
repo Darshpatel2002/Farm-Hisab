@@ -9,6 +9,7 @@ import { toAppError } from '../lib/errors';
 import { forgotPasswordSchema, signInSchema, signUpSchema } from '../lib/validation/schemas';
 import { useZodForm, str } from '../features/common/useZodForm';
 import { SUPPORTED_LANGUAGES, setLanguage } from '../i18n';
+import { FARM_SCENE } from '../components/layout/scenery';
 
 type Mode = 'signIn' | 'signUp' | 'forgot';
 
@@ -73,6 +74,8 @@ export default function AuthPage() {
     <div className="min-h-screen lg:grid lg:grid-cols-2">
       {/* Visual brand panel - changes with the current mode. */}
       <aside className="relative hidden overflow-hidden bg-brand-sheen p-12 text-white lg:flex lg:flex-col">
+        <span aria-hidden="true" className="absolute inset-0 bg-cover bg-bottom" style={{ backgroundImage: FARM_SCENE }} />
+        <span aria-hidden="true" className="absolute inset-0 bg-gradient-to-b from-brand-900/90 via-brand-800/55 to-brand-900/75" />
         <div aria-hidden="true" className="pointer-events-none absolute inset-0">
           <div className="absolute -left-16 top-10 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
           <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-harvest-400/20 blur-3xl" />
