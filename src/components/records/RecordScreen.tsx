@@ -72,7 +72,7 @@ export function RecordScreen<T extends { id: string }>({
         <ul className="space-y-3">
           {records.map((record) => (
             <li key={record.id}>
-              <Card>
+              <Card className="card-interactive">
                 {renderItem(record)}
                 {canEdit ? (
                   <div className="mt-3 flex gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
@@ -96,7 +96,7 @@ export function RecordScreen<T extends { id: string }>({
           type="button"
           onClick={onAdd}
           aria-label={addLabel}
-          className="fixed bottom-24 right-4 z-30 min-h-[56px] min-w-[56px] rounded-full bg-brand-700 text-2xl font-bold text-white shadow-lg lg:bottom-8"
+          className="fixed bottom-28 right-5 z-30 flex min-h-[60px] min-w-[60px] items-center justify-center rounded-full bg-brand-gradient text-3xl font-bold text-white shadow-lift ring-4 ring-white/70 transition hover:scale-105 active:scale-95 dark:ring-slate-900/70 lg:bottom-8"
         >
           ＋
         </button>

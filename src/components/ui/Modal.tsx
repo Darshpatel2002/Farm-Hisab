@@ -43,7 +43,7 @@ export function Modal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center" role="presentation" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/50 p-0 backdrop-blur-sm sm:items-center sm:p-4" role="presentation" onClick={onClose}>
       <div
         ref={panelRef}
         role="dialog"
@@ -51,17 +51,20 @@ export function Modal({
         aria-label={title}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
-        className="max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-white p-4 shadow-xl
-          dark:bg-slate-900 sm:max-w-2xl sm:rounded-3xl"
+        className="max-h-[92vh] w-full animate-scale-in overflow-y-auto rounded-t-4xl border border-white/60 bg-white p-5 shadow-lift
+          dark:border-slate-700/60 dark:bg-slate-900 sm:max-w-2xl sm:rounded-4xl"
       >
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="text-xl font-bold">{title}</h2>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 className="flex items-center gap-2 text-xl font-extrabold tracking-tight">
+            <span aria-hidden="true" className="h-6 w-1.5 rounded-full bg-gradient-to-b from-brand-400 to-brand-700" />
+            {title}
+          </h2>
           <Button variant="ghost" size="sm" onClick={onClose} aria-label={t('common.close')}>
             ✕
           </Button>
         </div>
         {children}
-        {footer ? <div className="mt-4 flex gap-3">{footer}</div> : null}
+        {footer ? <div className="mt-5 flex gap-3">{footer}</div> : null}
       </div>
     </div>
   );

@@ -8,8 +8,11 @@ export function Card({ children, className = '' }: { children: ReactNode; classN
 
 export function SectionTitle({ title, action }: { title: string; action?: ReactNode }) {
   return (
-    <div className="mb-3 flex items-center justify-between gap-3">
-      <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">{title}</h2>
+    <div className="mb-4 flex items-center justify-between gap-3">
+      <h2 className="flex items-center gap-2 text-lg font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
+        <span aria-hidden="true" className="h-5 w-1.5 rounded-full bg-gradient-to-b from-brand-400 to-brand-700" />
+        {title}
+      </h2>
       {action}
     </div>
   );
@@ -17,10 +20,10 @@ export function SectionTitle({ title, action }: { title: string; action?: ReactN
 
 export function PageHeader({ title, subtitle, action }: { title: string; subtitle?: string; action?: ReactNode }) {
   return (
-    <header className="mb-4 flex flex-wrap items-start justify-between gap-3">
+    <header className="mb-5 flex flex-wrap items-start justify-between gap-3">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{title}</h1>
-        {subtitle ? <p className="mt-0.5 text-base text-slate-600 dark:text-slate-400">{subtitle}</p> : null}
+        <h1 className="text-3xl font-extrabold tracking-tight text-gradient">{title}</h1>
+        {subtitle ? <p className="mt-1 text-base font-medium text-slate-600 dark:text-slate-400">{subtitle}</p> : null}
       </div>
       {action}
     </header>
@@ -64,15 +67,15 @@ export function StatCard({
 }) {
   const toneClass =
     tone === 'good'
-      ? 'border-brand-300 bg-brand-50 dark:border-brand-700 dark:bg-brand-900/30'
+      ? 'border-brand-300/70 bg-gradient-to-br from-brand-50 to-white dark:border-brand-700/60 dark:from-brand-900/40 dark:to-slate-900'
       : tone === 'bad'
-        ? 'border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-900/30'
-        : 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900';
+        ? 'border-red-300/70 bg-gradient-to-br from-red-50 to-white dark:border-red-800/60 dark:from-red-900/30 dark:to-slate-900'
+        : 'border-white/70 bg-white/85 dark:border-slate-700/60 dark:bg-slate-900/80';
 
   return (
-    <div className={`rounded-2xl border p-3 shadow-sm ${toneClass}`}>
+    <div className={`rounded-2xl border p-4 shadow-soft backdrop-blur-sm transition hover:-translate-y-0.5 hover:shadow-card ${toneClass}`}>
       <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">{label}</p>
-      <p className="mt-1 text-xl font-bold text-slate-900 dark:text-slate-50">{loading ? <Spinner /> : value}</p>
+      <p className="mt-1 text-2xl font-extrabold tracking-tight text-slate-900 dark:text-slate-50">{loading ? <Spinner /> : value}</p>
       {hint ? <p className="mt-0.5 text-sm text-slate-600 dark:text-slate-400">{hint}</p> : null}
     </div>
   );
@@ -90,15 +93,15 @@ export function EmptyState({
   to?: string;
 }) {
   return (
-    <div className="card flex flex-col items-center gap-3 py-8 text-center">
-      <span aria-hidden="true" className="text-4xl">
+    <div className="card flex flex-col items-center gap-3 py-10 text-center">
+      <span aria-hidden="true" className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-brand-100 to-brand-200 text-4xl shadow-inner dark:from-brand-900 dark:to-brand-800">
         🌱
       </span>
-      <p className="text-base font-medium text-slate-700 dark:text-slate-300">{message}</p>
+      <p className="max-w-sm text-base font-medium text-slate-700 dark:text-slate-300">{message}</p>
       {actionLabel && to ? (
         <Link
           to={to}
-          className="min-h-touch rounded-xl bg-brand-700 px-5 py-3 text-base font-semibold text-white hover:bg-brand-800"
+          className="min-h-touch rounded-2xl bg-gradient-to-b from-brand-600 to-brand-700 px-6 py-3 text-base font-bold text-white shadow-soft hover:from-brand-500"
         >
           {actionLabel}
         </Link>
@@ -107,7 +110,7 @@ export function EmptyState({
         <button
           type="button"
           onClick={onAction}
-          className="min-h-touch rounded-xl bg-brand-700 px-5 py-3 text-base font-semibold text-white hover:bg-brand-800"
+          className="min-h-touch rounded-2xl bg-gradient-to-b from-brand-600 to-brand-700 px-6 py-3 text-base font-bold text-white shadow-soft hover:from-brand-500"
         >
           {actionLabel}
         </button>

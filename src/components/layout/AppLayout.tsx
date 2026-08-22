@@ -84,8 +84,8 @@ function SeasonPicker() {
       <select
         value={seasonId ?? ''}
         onChange={(e) => setSeasonId(e.target.value)}
-        className="min-h-[44px] rounded-xl border-2 border-brand-700 bg-white px-3 py-1.5 text-base font-semibold text-brand-900
-          dark:border-brand-500 dark:bg-slate-900 dark:text-brand-100"
+        className="min-h-[44px] rounded-2xl border-2 border-brand-500/70 bg-white/90 px-3 py-1.5 text-base font-bold text-brand-800 shadow-sm
+          dark:border-brand-500/60 dark:bg-slate-900/80 dark:text-brand-100"
       >
         {seasons.map((season) => (
           <option key={season.id} value={season.id}>
@@ -112,14 +112,17 @@ export function AppLayout() {
   return (
     <div className="min-h-screen lg:flex">
       <ExitGuard />
-      <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 lg:block">
-        <div className="mb-6 flex items-center gap-2">
-          <span aria-hidden="true" className="text-2xl">
+      <aside className="glass hidden w-72 shrink-0 flex-col border-r p-4 lg:flex">
+        <div className="mb-7 flex items-center gap-3 px-1">
+          <span aria-hidden="true" className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-gradient text-2xl shadow-soft">
             🌿
           </span>
-          <span className="text-xl font-bold text-brand-800 dark:text-brand-200">{t('app.name')}</span>
+          <div className="leading-tight">
+            <span className="block text-xl font-extrabold tracking-tight text-brand-800 dark:text-brand-200">{t('app.name')}</span>
+            <span className="block text-xs font-semibold text-slate-500 dark:text-slate-400">{t('app.tagline')}</span>
+          </div>
         </div>
-        <nav aria-label={t('nav.menu')}>
+        <nav aria-label={t('nav.menu')} className="flex-1 overflow-y-auto">
           <ul className="space-y-1">
             {ALL_LINKS.map((link) => (
               <li key={link.to}>
@@ -127,31 +130,39 @@ export function AppLayout() {
                   to={link.to}
                   end={link.to === '/'}
                   className={({ isActive }) =>
-                    `flex min-h-touch items-center gap-3 rounded-xl px-3 py-2 text-base font-semibold ${
+                    `group flex min-h-touch items-center gap-3 rounded-2xl px-3 py-2.5 text-base font-bold transition ${
                       isActive
-                        ? 'bg-brand-100 text-brand-900 dark:bg-brand-900 dark:text-brand-100'
-                        : 'text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
+                        ? 'bg-gradient-to-r from-brand-600 to-brand-700 text-white shadow-soft'
+                        : 'text-slate-700 hover:bg-brand-50 dark:text-slate-300 dark:hover:bg-slate-800/70'
                     }`
                   }
                 >
-                  <span aria-hidden="true">{link.icon}</span>
+                  <span aria-hidden="true" className="text-xl">{link.icon}</span>
                   {t(`nav.${link.key}`)}
                 </NavLink>
               </li>
             ))}
           </ul>
         </nav>
+        {profile?.full_name ? (
+          <div className="mt-4 flex items-center gap-3 rounded-2xl border border-white/60 bg-white/60 p-3 dark:border-slate-700/50 dark:bg-slate-800/50">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-gradient text-sm font-bold text-white">
+              {profile.full_name.slice(0, 1).toUpperCase()}
+            </span>
+            <span className="truncate text-sm font-semibold text-slate-700 dark:text-slate-200">{profile.full_name}</span>
+          </div>
+        ) : null}
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur dark:border-slate-800 dark:bg-slate-900/95">
-          <div className="flex items-center gap-3 px-4 py-2">
-            <h1 className="truncate text-lg font-bold lg:text-xl">{title}</h1>
+        <header className="glass sticky top-0 z-30 border-b">
+          <div className="flex items-center gap-3 px-4 py-3">
+            <h1 className="truncate text-xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 lg:text-2xl">{title}</h1>
             <div className="ml-auto flex items-center gap-2">
               <SeasonPicker />
             </div>
           </div>
-          <div className="px-4 pb-2">
+          <div className="px-4 pb-3">
             <form
               role="search"
               onSubmit={(e) => {
@@ -162,51 +173,71 @@ export function AppLayout() {
               <label className="sr-only" htmlFor="global-search">
                 {t('search.title')}
               </label>
-              <input
-                id="global-search"
-                type="search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder={t('search.placeholder')}
-                className="input"
-              />
+              <div className="relative">
+                <span aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-lg text-slate-400">
+                  🔍
+                </span>
+                <input
+                  id="global-search"
+                  type="search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={t('search.placeholder')}
+                  className="input pl-11"
+                />
+              </div>
             </form>
           </div>
           <SyncBanner />
         </header>
 
-        <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-28 pt-4 lg:pb-8">
-          <Outlet />
+        <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-32 pt-5 lg:pb-10">
+          <div key={location.pathname} className="animate-fade-up">
+            <Outlet />
+          </div>
         </main>
 
         <nav
           aria-label={t('nav.menu')}
-          className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 lg:hidden"
+          className="safe-bottom glass fixed inset-x-0 bottom-0 z-40 border-t lg:hidden"
         >
-          <ul className="flex">
-            {PRIMARY.map((link) => (
-              <li key={link.to} className="flex-1">
-                <NavLink
-                  to={link.to}
-                  end={link.end}
-                  className={({ isActive }) =>
-                    `flex min-h-[60px] flex-col items-center justify-center gap-0.5 px-1 py-1 text-xs font-semibold ${
-                      isActive ? 'text-brand-800 dark:text-brand-200' : 'text-slate-600 dark:text-slate-400'
-                    }`
-                  }
-                >
-                  <span aria-hidden="true" className="text-xl">
-                    {link.icon}
-                  </span>
-                  {t(`nav.${link.key}`)}
-                </NavLink>
-              </li>
-            ))}
+          <ul className="mx-auto flex max-w-lg items-end justify-around px-2">
+            {PRIMARY.map((link) =>
+              link.key === 'add' ? (
+                <li key={link.to} className="flex-1">
+                  <NavLink
+                    to={link.to}
+                    end={link.end}
+                    aria-label={t(`nav.${link.key}`)}
+                    className="mx-auto -mt-6 flex h-16 w-16 flex-col items-center justify-center rounded-full bg-brand-gradient text-3xl font-bold text-white shadow-lift ring-4 ring-white dark:ring-slate-900"
+                  >
+                    <span aria-hidden="true">＋</span>
+                  </NavLink>
+                </li>
+              ) : (
+                <li key={link.to} className="flex-1">
+                  <NavLink
+                    to={link.to}
+                    end={link.end}
+                    className={({ isActive }) =>
+                      `mx-auto flex min-h-[58px] max-w-[72px] flex-col items-center justify-center gap-0.5 rounded-2xl px-1 py-1.5 text-xs font-bold transition ${
+                        isActive
+                          ? 'bg-brand-100 text-brand-800 dark:bg-brand-900/60 dark:text-brand-200'
+                          : 'text-slate-500 dark:text-slate-400'
+                      }`
+                    }
+                  >
+                    <span aria-hidden="true" className="text-xl">
+                      {link.icon}
+                    </span>
+                    {t(`nav.${link.key}`)}
+                  </NavLink>
+                </li>
+              ),
+            )}
           </ul>
         </nav>
       </div>
-
-      <p className="sr-only">{profile?.full_name}</p>
     </div>
   );
 }
