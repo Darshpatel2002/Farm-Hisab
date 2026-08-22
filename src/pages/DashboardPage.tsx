@@ -61,7 +61,7 @@ export default function DashboardPage() {
   if (farms.length === 0 && !isLoading) {
     return (
       <section>
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-500 via-green-600 to-emerald-800 p-8 text-white shadow-card">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-500 via-brand-600 to-brand-800 p-8 text-white shadow-card">
           <span aria-hidden="true" className="pointer-events-none absolute -right-10 -top-14 h-52 w-52 rounded-full bg-white/15 blur-2xl" />
           <span aria-hidden="true" className="relative mb-3 inline-block animate-float text-6xl">🌱</span>
           <h2 className="relative text-3xl font-extrabold tracking-tight">{t('onboarding.welcome')}</h2>
@@ -80,7 +80,7 @@ export default function DashboardPage() {
 
           <Link
             to="/farms"
-            className="relative mt-7 inline-flex min-h-[56px] items-center rounded-2xl bg-white px-8 text-lg font-extrabold text-emerald-700 shadow-lift transition hover:-translate-y-0.5"
+            className="relative mt-7 inline-flex min-h-[56px] items-center rounded-2xl bg-white px-8 text-lg font-extrabold text-brand-700 shadow-lift transition hover:-translate-y-0.5"
           >
             {t('onboarding.start')}
           </Link>
@@ -97,7 +97,7 @@ export default function DashboardPage() {
   return (
     <section>
       {/* Season hero - the anchor for the whole screen. */}
-      <div className="relative mb-6 overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-500 via-green-600 to-emerald-800 p-6 shadow-card sm:p-8">
+      <div className="relative mb-6 overflow-hidden rounded-3xl bg-gradient-to-br from-brand-500 via-brand-600 to-brand-800 p-6 shadow-card sm:p-8">
         <span aria-hidden="true" className="pointer-events-none absolute -right-12 -top-16 h-56 w-56 rounded-full bg-white/15 blur-2xl" />
         <span aria-hidden="true" className="pointer-events-none absolute -bottom-24 left-1/4 h-56 w-56 rounded-full bg-black/10 blur-2xl" />
         <span aria-hidden="true" className="pointer-events-none absolute right-6 top-6 hidden animate-float text-6xl opacity-25 sm:block">🌾</span>
@@ -119,7 +119,7 @@ export default function DashboardPage() {
             </div>
             <div className="rounded-2xl bg-white p-4 shadow-soft">
               <p className="text-xs font-bold uppercase tracking-wider text-slate-500">{t('dashboard.netProfit')}</p>
-              <p className={`mt-1 text-2xl font-extrabold ${totals.profit >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
+              <p className={`mt-1 text-2xl font-extrabold ${totals.profit >= 0 ? 'text-brand-700' : 'text-red-700'}`}>
                 {formatCurrency(totals.profit)}
               </p>
               <p className="text-xs font-bold text-slate-500">

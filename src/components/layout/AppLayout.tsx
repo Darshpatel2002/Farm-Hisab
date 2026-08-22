@@ -6,7 +6,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useSyncStatus } from '../../hooks/usePreferences';
 import { flushQueue } from '../../lib/offline/queue';
 import { ExitGuard } from './ExitGuard';
-import { themeForPath, usePageTheme } from './pageTheme';
+import { BRAND_GRADIENT, usePageTheme } from './pageTheme';
 
 /**
  * Desktop: sidebar navigation.
@@ -153,13 +153,19 @@ export function AppLayout() {
     <div className="relative min-h-screen lg:flex">
       <ExitGuard />
 
-      {/* Ambient wash that re-tints for the active section. */}
+      {/* Section motif + soft green wash filling the empty space behind content. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none fixed inset-0 -z-10 transition-[background] duration-700"
+        className="pointer-events-none fixed inset-0 -z-10 opacity-[0.07] transition-opacity duration-500 dark:opacity-[0.05]"
+        style={{ backgroundImage: theme.motif, backgroundRepeat: 'repeat' }}
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-0 -z-10"
         style={{
-          background: `radial-gradient(900px 480px at 12% -8%, ${theme.glow}, transparent 62%),
-                       radial-gradient(760px 420px at 100% 4%, ${theme.glow}, transparent 58%)`,
+          background:
+            'radial-gradient(900px 480px at 12% -8%, rgba(61,148,64,0.16), transparent 62%),' +
+            'radial-gradient(760px 420px at 100% 4%, rgba(251,201,77,0.14), transparent 58%)',
         }}
       />
 
@@ -190,7 +196,7 @@ export function AppLayout() {
                       className={({ isActive }) =>
                         `group relative flex min-h-touch items-center gap-3 rounded-2xl px-3 py-2.5 text-[15px] font-bold transition ${
                           isActive
-                            ? `bg-gradient-to-r ${themeForPath(link.to).gradient} text-white shadow-soft`
+                            ? `bg-gradient-to-r ${BRAND_GRADIENT} text-white shadow-soft`
                             : 'text-slate-600 hover:bg-white/70 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-white'
                         }`
                       }
@@ -221,7 +227,7 @@ export function AppLayout() {
             {/* Section badge doubles as a "you are here" marker. */}
             <span
               aria-hidden="true"
-              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${theme.gradient} text-xl shadow-soft`}
+              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${BRAND_GRADIENT} text-xl shadow-soft`}
             >
               {theme.icon}
             </span>

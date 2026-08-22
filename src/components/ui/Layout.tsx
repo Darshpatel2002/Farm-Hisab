@@ -23,6 +23,12 @@ export function PageHeader({ title, subtitle, action }: { title: string; subtitl
   const theme = usePageTheme();
   return (
     <header className={`relative mb-6 overflow-hidden rounded-3xl bg-gradient-to-br ${theme.gradient} p-6 shadow-card`}>
+      {/* Section motif keeps each tab recognisable while the colour stays constant. */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 opacity-20 brightness-0 invert"
+        style={{ backgroundImage: theme.motif, backgroundRepeat: 'repeat' }}
+      />
       {/* Decorative light blooms keep the band from looking flat. */}
       <span aria-hidden="true" className="pointer-events-none absolute -right-10 -top-16 h-48 w-48 rounded-full bg-white/15 blur-2xl" />
       <span aria-hidden="true" className="pointer-events-none absolute -bottom-20 left-1/3 h-44 w-44 rounded-full bg-black/10 blur-2xl" />

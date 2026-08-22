@@ -55,7 +55,9 @@ export function Modal({
     >
       {/*
         The panel is a flex column: only the middle section scrolls, so the
-        title and the Save/Cancel buttons are always on screen.
+        title and the Save/Cancel buttons are always on screen. `max-h-full`
+        resolves against the inset-0 overlay, so it can never exceed the
+        viewport regardless of browser chrome or `dvh` support.
       */}
       <div
         ref={panelRef}
@@ -64,8 +66,8 @@ export function Modal({
         aria-label={title}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
-        className="flex max-h-[88dvh] w-full animate-scale-in flex-col overflow-hidden rounded-t-4xl border border-white/60 bg-white shadow-lift
-          dark:border-slate-700/60 dark:bg-slate-900 sm:max-h-[85vh] sm:max-w-2xl sm:rounded-4xl"
+        className="flex max-h-full w-full animate-scale-in flex-col overflow-hidden rounded-t-4xl border border-white/60 bg-white shadow-lift
+          dark:border-slate-700/60 dark:bg-slate-900 sm:max-w-2xl sm:rounded-4xl"
       >
         {/* Grab handle hints that the sheet is scrollable on a phone. */}
         <div aria-hidden="true" className="mx-auto mt-2.5 h-1.5 w-12 shrink-0 rounded-full bg-slate-300 dark:bg-slate-600 sm:hidden" />
