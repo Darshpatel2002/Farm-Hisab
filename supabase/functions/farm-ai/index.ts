@@ -8,7 +8,8 @@
 //    Security decides what is visible. The service-role key is never used.
 //  - No third-party imports: plain fetch only, so the function cannot fail to boot.
 
-const GEMINI_MODELS = ['gemini-2.0-flash', 'gemini-flash-latest', 'gemini-1.5-flash'];
+// Google retires model names periodically; the first that responds is used.
+const GEMINI_MODELS = ['gemini-3.6-flash', 'gemini-flash-latest', 'gemini-2.5-flash'];
 const MAX_QUESTION_CHARS = 1500;
 const MAX_HISTORY = 10;
 
