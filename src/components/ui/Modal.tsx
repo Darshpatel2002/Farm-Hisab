@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from './Button';
+import { usePageTheme } from '../layout/pageTheme';
 
 /** Bottom sheet on phones, centred dialog on desktop. */
 export function Modal({
@@ -19,6 +20,8 @@ export function Modal({
 }) {
   const { t } = useTranslation();
   const panelRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const theme = usePageTheme();
 
   // Move focus into the dialog once, when it opens. Depending on anything that
   // changes per render would pull focus back out of the field being typed in.
@@ -26,6 +29,8 @@ export function Modal({
     if (!open) return;
     document.body.style.overflow = 'hidden';
     panelRef.current?.focus();
+    // A reopened dialog must always start at the first field, not where it was left.
+    if (bodyRef.current) bodyRef.current.scrollTop = 0;
     return () => {
       document.body.style.overflow = '';
     };
@@ -43,7 +48,15 @@ export function Modal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/50 p-0 backdrop-blur-sm sm:items-center sm:p-4" role="presentation" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/60 backdrop-blur-sm sm:items-center sm:p-6"
+      role="presentation"
+      onClick={onClose}
+    >
+      {/*
+        The panel is a flex column: only the middle section scrolls, so the
+        title and the Save/Cancel buttons are always on screen.
+      */}
       <div
         ref={panelRef}
         role="dialog"
@@ -51,20 +64,38 @@ export function Modal({
         aria-label={title}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
-        className="max-h-[92vh] w-full animate-scale-in overflow-y-auto rounded-t-4xl border border-white/60 bg-white p-5 shadow-lift
-          dark:border-slate-700/60 dark:bg-slate-900 sm:max-w-2xl sm:rounded-4xl"
+        className="flex max-h-[88dvh] w-full animate-scale-in flex-col overflow-hidden rounded-t-4xl border border-white/60 bg-white shadow-lift
+          dark:border-slate-700/60 dark:bg-slate-900 sm:max-h-[85vh] sm:max-w-2xl sm:rounded-4xl"
       >
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 className="flex items-center gap-2 text-xl font-extrabold tracking-tight">
-            <span aria-hidden="true" className="h-6 w-1.5 rounded-full bg-gradient-to-b from-brand-400 to-brand-700" />
-            {title}
+        {/* Grab handle hints that the sheet is scrollable on a phone. */}
+        <div aria-hidden="true" className="mx-auto mt-2.5 h-1.5 w-12 shrink-0 rounded-full bg-slate-300 dark:bg-slate-600 sm:hidden" />
+
+        <header
+          className={`flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 bg-gradient-to-r ${theme.gradient} px-5 py-4 dark:border-slate-800`}
+        >
+          <h2 className="flex min-w-0 items-center gap-2.5 text-xl font-extrabold tracking-tight text-white">
+            <span aria-hidden="true" className="text-2xl">{theme.icon}</span>
+            <span className="truncate">{title}</span>
           </h2>
-          <Button variant="ghost" size="sm" onClick={onClose} aria-label={t('common.close')}>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={t('common.close')}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20 text-lg font-bold text-white transition hover:bg-white/30"
+          >
             ✕
-          </Button>
+          </button>
+        </header>
+
+        <div ref={bodyRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5">
+          {children}
         </div>
-        {children}
-        {footer ? <div className="mt-5 flex gap-3">{footer}</div> : null}
+
+        {footer ? (
+          <footer className="safe-bottom flex shrink-0 gap-3 border-t border-slate-100 bg-white/95 px-5 py-4 backdrop-blur dark:border-slate-800 dark:bg-slate-900/95">
+            {footer}
+          </footer>
+        ) : null}
       </div>
     </div>
   );
