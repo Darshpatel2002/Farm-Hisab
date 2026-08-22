@@ -9,12 +9,20 @@ import { rankBy } from '../lib/calculations/ranking';
 import { formatCurrency, formatNumber } from '../lib/formatting/number';
 
 const QUICK_ACTIONS = [
-  { to: '/expenses', key: 'expenses.add', icon: '💰' },
-  { to: '/sprays', key: 'sprays.add', icon: '🧴' },
-  { to: '/irrigation', key: 'irrigation.add', icon: '💧' },
-  { to: '/harvest', key: 'harvest.add', icon: '🧺' },
-  { to: '/sales', key: 'sales.add', icon: '🏷️' },
-  { to: '/activities', key: 'activities.add', icon: '🚜' },
+  { to: '/expenses', key: 'expenses.add', icon: '💰', gradient: 'from-rose-500 to-red-700' },
+  { to: '/sprays', key: 'sprays.add', icon: '🧴', gradient: 'from-violet-500 to-purple-700' },
+  { to: '/irrigation', key: 'irrigation.add', icon: '💧', gradient: 'from-sky-500 to-blue-700' },
+  { to: '/harvest', key: 'harvest.add', icon: '🧺', gradient: 'from-orange-500 to-amber-700' },
+  { to: '/sales', key: 'sales.add', icon: '🏷️', gradient: 'from-fuchsia-500 to-purple-700' },
+  { to: '/activities', key: 'activities.add', icon: '🚜', gradient: 'from-amber-500 to-orange-700' },
+] as const;
+
+/** Medal colours for the top three, muted slate for the rest. */
+const RANK_TONES = [
+  'bg-amber-100 text-amber-800',
+  'bg-slate-200 text-slate-700',
+  'bg-orange-100 text-orange-800',
+  'bg-slate-100 text-slate-600',
 ] as const;
 
 export default function DashboardPage() {
@@ -53,28 +61,30 @@ export default function DashboardPage() {
   if (farms.length === 0 && !isLoading) {
     return (
       <section>
-        <Card className="mb-4">
-          <h2 className="text-xl font-bold">{t('onboarding.welcome')}</h2>
-          <p className="mt-1 text-base text-slate-700 dark:text-slate-300">{t('onboarding.intro')}</p>
-          <ol className="mt-3 list-decimal space-y-1 pl-5 text-base">
-            <li>{t('onboarding.step1')}</li>
-            <li>{t('onboarding.step2')}</li>
-            <li>{t('onboarding.step3')}</li>
-            <li>{t('onboarding.step4')}</li>
-            <li>{t('onboarding.step5')}</li>
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-500 via-green-600 to-emerald-800 p-8 text-white shadow-card">
+          <span aria-hidden="true" className="pointer-events-none absolute -right-10 -top-14 h-52 w-52 rounded-full bg-white/15 blur-2xl" />
+          <span aria-hidden="true" className="relative mb-3 inline-block animate-float text-6xl">🌱</span>
+          <h2 className="relative text-3xl font-extrabold tracking-tight">{t('onboarding.welcome')}</h2>
+          <p className="relative mt-2 max-w-lg text-lg text-white/85">{t('onboarding.intro')}</p>
+
+          <ol className="relative mt-6 grid gap-2 sm:grid-cols-2">
+            {['step1', 'step2', 'step3', 'step4', 'step5'].map((step, index) => (
+              <li key={step} className="flex items-center gap-3 rounded-2xl bg-white/15 px-4 py-3 backdrop-blur-sm">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/25 text-sm font-extrabold">
+                  {index + 1}
+                </span>
+                <span className="font-semibold">{t(`onboarding.${step}`)}</span>
+              </li>
+            ))}
           </ol>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link to="/farms" className="min-h-touch rounded-xl bg-brand-700 px-5 py-3 text-base font-semibold text-white">
-              {t('onboarding.start')}
-            </Link>
-            <Link
-              to="/settings"
-              className="min-h-touch rounded-xl border-2 border-brand-700 px-5 py-3 text-base font-semibold text-brand-800 dark:text-brand-200"
-            >
-              {t('onboarding.loadDemo')}
-            </Link>
-          </div>
-        </Card>
+
+          <Link
+            to="/farms"
+            className="relative mt-7 inline-flex min-h-[56px] items-center rounded-2xl bg-white px-8 text-lg font-extrabold text-emerald-700 shadow-lift transition hover:-translate-y-0.5"
+          >
+            {t('onboarding.start')}
+          </Link>
+        </div>
       </section>
     );
   }
@@ -86,49 +96,69 @@ export default function DashboardPage() {
 
   return (
     <section>
-      <Card className="mb-4">
-        <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">{t('dashboard.currentSeason')}</p>
-        <p className="text-2xl font-bold text-brand-800 dark:text-brand-200">{season?.name ?? t('dashboard.noSeason')}</p>
-      </Card>
+      {/* Season hero - the anchor for the whole screen. */}
+      <div className="relative mb-6 overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-500 via-green-600 to-emerald-800 p-6 shadow-card sm:p-8">
+        <span aria-hidden="true" className="pointer-events-none absolute -right-12 -top-16 h-56 w-56 rounded-full bg-white/15 blur-2xl" />
+        <span aria-hidden="true" className="pointer-events-none absolute -bottom-24 left-1/4 h-56 w-56 rounded-full bg-black/10 blur-2xl" />
+        <span aria-hidden="true" className="pointer-events-none absolute right-6 top-6 hidden animate-float text-6xl opacity-25 sm:block">🌾</span>
 
-      <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="relative">
+          <p className="text-sm font-bold uppercase tracking-widest text-white/70">{t('dashboard.currentSeason')}</p>
+          <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+            {season?.name ?? t('dashboard.noSeason')}
+          </h1>
+
+          <div className="mt-6 grid gap-4 sm:grid-cols-3">
+            <div className="rounded-2xl bg-white/15 p-4 backdrop-blur-sm">
+              <p className="text-xs font-bold uppercase tracking-wider text-white/70">{t('dashboard.totalInvestment')}</p>
+              <p className="mt-1 text-2xl font-extrabold text-white">{formatCurrency(totals.cost)}</p>
+            </div>
+            <div className="rounded-2xl bg-white/15 p-4 backdrop-blur-sm">
+              <p className="text-xs font-bold uppercase tracking-wider text-white/70">{t('dashboard.actualRevenue')}</p>
+              <p className="mt-1 text-2xl font-extrabold text-white">{formatCurrency(totals.revenue)}</p>
+            </div>
+            <div className="rounded-2xl bg-white p-4 shadow-soft">
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">{t('dashboard.netProfit')}</p>
+              <p className={`mt-1 text-2xl font-extrabold ${totals.profit >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
+                {formatCurrency(totals.profit)}
+              </p>
+              <p className="text-xs font-bold text-slate-500">
+                {t('reports.roiShort')}: {formatNumber(totals.roi, 1)}%
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard label={t('dashboard.totalFarms')} value={formatNumber(totals.farmCount, 0)} />
         <StatCard label={t('dashboard.totalArea')} value={`${formatNumber(totals.acres, 2)} ${t('common.acres')}`} />
         <StatCard label={t('dashboard.activeCrops')} value={formatNumber(totals.cropCount, 0)} />
-        <StatCard label={t('dashboard.totalInvestment')} value={formatCurrency(totals.cost)} />
-        <StatCard label={t('dashboard.actualRevenue')} value={formatCurrency(totals.revenue)} />
-        <StatCard label={t('dashboard.expectedRevenue')} value={formatCurrency(totals.expectedRevenue)} />
-        <StatCard
-          label={t('dashboard.netProfit')}
-          value={formatCurrency(totals.profit)}
-          tone={totals.profit >= 0 ? 'good' : 'bad'}
-          hint={`${t('reports.roiShort')}: ${formatNumber(totals.roi, 1)}%`}
-        />
         <StatCard label={t('dashboard.outstanding')} value={formatCurrency(totals.outstandingRevenue)} />
       </div>
 
-      <Card className="mb-4">
+      <Card className="mb-6">
         <SectionTitle title={t('dashboard.quickAdd')} />
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {QUICK_ACTIONS.map((action) => (
             <Link
               key={action.to}
               to={action.to}
-              className="flex min-h-[64px] items-center gap-2 rounded-2xl bg-brand-700 px-3 py-3 text-base font-semibold text-white hover:bg-brand-800"
+              className={`group flex min-h-[76px] items-center gap-3 rounded-2xl bg-gradient-to-br ${action.gradient} px-4 py-3 text-base font-bold text-white shadow-soft transition hover:-translate-y-0.5 hover:shadow-lift`}
             >
-              <span aria-hidden="true" className="text-2xl">
+              <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/20 text-2xl">
                 {action.icon}
               </span>
-              {t(action.key)}
+              <span className="leading-tight">{t(action.key)}</span>
             </Link>
           ))}
         </div>
       </Card>
 
       {totals.unallocatedCost > 0.01 ? (
-        <Card className="mb-4">
-          <p className="text-base font-semibold">
-            {t('dashboard.unallocated')}: {formatCurrency(totals.unallocatedCost)}
+        <Card className="mb-6 border-l-4 border-l-amber-500">
+          <p className="text-base font-bold">
+            ⚠️ {t('dashboard.unallocated')}: {formatCurrency(totals.unallocatedCost)}
           </p>
         </Card>
       ) : null}
@@ -144,11 +174,19 @@ export default function DashboardPage() {
           <SectionTitle title={t('dashboard.topFarms')} />
           <ol className="space-y-2">
             {rankBy(report.byFarm, 'profit', 5).map((entry) => (
-              <li key={entry.item.farmId} className="flex items-center justify-between gap-3">
-                <Link to={`/farms/${entry.item.farmId}`} className="text-base font-semibold underline">
-                  {entry.rank}. {entry.item.name}
+              <li key={entry.item.farmId}>
+                <Link
+                  to={`/farms/${entry.item.farmId}`}
+                  className="flex items-center justify-between gap-3 rounded-2xl px-3 py-2.5 transition hover:bg-brand-50 dark:hover:bg-slate-800/70"
+                >
+                  <span className="flex min-w-0 items-center gap-3">
+                    <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-extrabold ${RANK_TONES[entry.rank - 1] ?? RANK_TONES[3]}`}>
+                      {entry.rank}
+                    </span>
+                    <span className="truncate text-base font-bold">{entry.item.name}</span>
+                  </span>
+                  <TrendValue value={entry.item.profit} formatted={formatCurrency(entry.item.profit)} />
                 </Link>
-                <TrendValue value={entry.item.profit} formatted={formatCurrency(entry.item.profit)} />
               </li>
             ))}
           </ol>
@@ -157,9 +195,12 @@ export default function DashboardPage() {
           <SectionTitle title={t('dashboard.topCrops')} />
           <ol className="space-y-2">
             {rankBy(report.byCrop, 'profitPerAcre', 5).map((entry) => (
-              <li key={entry.item.cropId} className="flex items-center justify-between gap-3">
-                <span className="text-base font-semibold">
-                  {entry.rank}. {cropName(entry.item.cropId) || entry.item.name}
+              <li key={entry.item.cropId} className="flex items-center justify-between gap-3 rounded-2xl px-3 py-2.5">
+                <span className="flex min-w-0 items-center gap-3">
+                  <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-extrabold ${RANK_TONES[entry.rank - 1] ?? RANK_TONES[3]}`}>
+                    {entry.rank}
+                  </span>
+                  <span className="truncate text-base font-bold">{cropName(entry.item.cropId) || entry.item.name}</span>
                 </span>
                 <TrendValue value={entry.item.profitPerAcre} formatted={formatCurrency(entry.item.profitPerAcre)} />
               </li>

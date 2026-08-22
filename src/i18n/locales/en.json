@@ -35,7 +35,11 @@
     "more": "More",
     "add": "Add",
     "menu": "Menu",
-    "records": "Records"
+    "records": "Records",
+    "groupOverview": "Overview",
+    "groupLand": "Land & Crops",
+    "groupWork": "Field work",
+    "groupMoney": "Money"
   },
   "common": {
     "save": "Save",

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Spinner } from './Button';
+import { usePageTheme } from '../layout/pageTheme';
 
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
   return <div className={`card ${className}`}>{children}</div>;
@@ -19,13 +20,23 @@ export function SectionTitle({ title, action }: { title: string; action?: ReactN
 }
 
 export function PageHeader({ title, subtitle, action }: { title: string; subtitle?: string; action?: ReactNode }) {
+  const theme = usePageTheme();
   return (
-    <header className="mb-5 flex flex-wrap items-start justify-between gap-3">
-      <div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-gradient">{title}</h1>
-        {subtitle ? <p className="mt-1 text-base font-medium text-slate-600 dark:text-slate-400">{subtitle}</p> : null}
+    <header className={`relative mb-6 overflow-hidden rounded-3xl bg-gradient-to-br ${theme.gradient} p-6 shadow-card`}>
+      {/* Decorative light blooms keep the band from looking flat. */}
+      <span aria-hidden="true" className="pointer-events-none absolute -right-10 -top-16 h-48 w-48 rounded-full bg-white/15 blur-2xl" />
+      <span aria-hidden="true" className="pointer-events-none absolute -bottom-20 left-1/3 h-44 w-44 rounded-full bg-black/10 blur-2xl" />
+      <span aria-hidden="true" className="pointer-events-none absolute right-6 top-1/2 hidden -translate-y-1/2 text-7xl opacity-20 sm:block">
+        {theme.icon}
+      </span>
+
+      <div className="relative flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-3xl font-extrabold tracking-tight text-white drop-shadow-sm">{title}</h1>
+          {subtitle ? <p className="mt-1.5 max-w-xl text-base font-medium text-white/85">{subtitle}</p> : null}
+        </div>
+        {action}
       </div>
-      {action}
     </header>
   );
 }

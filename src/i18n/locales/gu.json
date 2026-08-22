@@ -35,7 +35,11 @@
     "more": "વધુ",
     "add": "ઉમેરો",
     "menu": "મેનુ",
-    "records": "નોંધ"
+    "records": "નોંધ",
+    "groupOverview": "ઝાંખી",
+    "groupLand": "જમીન અને પાક",
+    "groupWork": "ખેતરનું કામ",
+    "groupMoney": "ર્પા"
   },
   "common": {
     "save": "સાચવો",

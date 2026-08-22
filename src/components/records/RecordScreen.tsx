@@ -55,7 +55,7 @@ export function RecordScreen<T extends { id: string }>({
         subtitle={subtitle}
         action={
           canEdit ? (
-            <Button onClick={onAdd} icon={<span aria-hidden="true">＋</span>}>
+            <Button variant="onAccent" onClick={onAdd} icon={<span aria-hidden="true">＋</span>}>
               {addLabel}
             </Button>
           ) : undefined

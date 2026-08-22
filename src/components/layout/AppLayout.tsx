@@ -6,6 +6,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useSyncStatus } from '../../hooks/usePreferences';
 import { flushQueue } from '../../lib/offline/queue';
 import { ExitGuard } from './ExitGuard';
+import { themeForPath, usePageTheme } from './pageTheme';
 
 /**
  * Desktop: sidebar navigation.
@@ -35,6 +36,44 @@ const ALL_LINKS = [
   { to: '/sales', key: 'sales', icon: '🏷️' },
   { to: '/reports', key: 'reports', icon: '📊' },
   { to: '/settings', key: 'settings', icon: '⚙️' },
+] as const;
+
+/** Sidebar sections - grouping keeps a 14-item menu scannable. */
+const NAV_GROUPS = [
+  {
+    labelKey: 'nav.groupOverview',
+    links: [
+      { to: '/', key: 'dashboard', icon: '🏠' },
+      { to: '/reports', key: 'reports', icon: '📊' },
+    ],
+  },
+  {
+    labelKey: 'nav.groupLand',
+    links: [
+      { to: '/farms', key: 'farms', icon: '🌾' },
+      { to: '/crops', key: 'crops', icon: '🌱' },
+      { to: '/seasons', key: 'seasons', icon: '📅' },
+    ],
+  },
+  {
+    labelKey: 'nav.groupWork',
+    links: [
+      { to: '/activities', key: 'activities', icon: '🚜' },
+      { to: '/irrigation', key: 'irrigation', icon: '💧' },
+      { to: '/sprays', key: 'sprays', icon: '🧴' },
+      { to: '/fertilizers', key: 'fertilizers', icon: '🧪' },
+      { to: '/seeds', key: 'seeds', icon: '🌰' },
+    ],
+  },
+  {
+    labelKey: 'nav.groupMoney',
+    links: [
+      { to: '/expenses', key: 'expenses', icon: '💰' },
+      { to: '/harvest', key: 'harvest', icon: '🧺' },
+      { to: '/sales', key: 'sales', icon: '🏷️' },
+      { to: '/settings', key: 'settings', icon: '⚙️' },
+    ],
+  },
 ] as const;
 
 export function SyncBanner() {
@@ -103,6 +142,7 @@ export function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [search, setSearch] = useState('');
+  const theme = usePageTheme();
 
   const title = useMemo(() => {
     const link = ALL_LINKS.find((l) => l.to !== '/' && location.pathname.startsWith(l.to));
@@ -110,10 +150,22 @@ export function AppLayout() {
   }, [location.pathname, t]);
 
   return (
-    <div className="min-h-screen lg:flex">
+    <div className="relative min-h-screen lg:flex">
       <ExitGuard />
-      <aside className="glass hidden w-72 shrink-0 flex-col border-r p-4 lg:flex">
-        <div className="mb-7 flex items-center gap-3 px-1">
+
+      {/* Ambient wash that re-tints for the active section. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-0 -z-10 transition-[background] duration-700"
+        style={{
+          background: `radial-gradient(900px 480px at 12% -8%, ${theme.glow}, transparent 62%),
+                       radial-gradient(760px 420px at 100% 4%, ${theme.glow}, transparent 58%)`,
+        }}
+      />
+
+      {/* Desktop sidebar - stays put while the page scrolls. */}
+      <aside className="glass sticky top-0 hidden h-screen w-72 shrink-0 flex-col self-start border-r p-4 lg:flex">
+        <div className="mb-6 flex items-center gap-3 px-1">
           <span aria-hidden="true" className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-gradient text-2xl shadow-soft">
             🌿
           </span>
@@ -122,46 +174,72 @@ export function AppLayout() {
             <span className="block text-xs font-semibold text-slate-500 dark:text-slate-400">{t('app.tagline')}</span>
           </div>
         </div>
-        <nav aria-label={t('nav.menu')} className="flex-1 overflow-y-auto">
-          <ul className="space-y-1">
-            {ALL_LINKS.map((link) => (
-              <li key={link.to}>
-                <NavLink
-                  to={link.to}
-                  end={link.to === '/'}
-                  className={({ isActive }) =>
-                    `group flex min-h-touch items-center gap-3 rounded-2xl px-3 py-2.5 text-base font-bold transition ${
-                      isActive
-                        ? 'bg-gradient-to-r from-brand-600 to-brand-700 text-white shadow-soft'
-                        : 'text-slate-700 hover:bg-brand-50 dark:text-slate-300 dark:hover:bg-slate-800/70'
-                    }`
-                  }
-                >
-                  <span aria-hidden="true" className="text-xl">{link.icon}</span>
-                  {t(`nav.${link.key}`)}
-                </NavLink>
-              </li>
-            ))}
-          </ul>
+
+        <nav aria-label={t('nav.menu')} className="-mr-2 flex-1 overflow-y-auto pr-2">
+          {NAV_GROUPS.map((group) => (
+            <div key={group.labelKey} className="mb-4">
+              <p className="mb-1.5 px-3 text-[11px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                {t(group.labelKey)}
+              </p>
+              <ul className="space-y-1">
+                {group.links.map((link) => (
+                  <li key={link.to}>
+                    <NavLink
+                      to={link.to}
+                      end={link.to === '/'}
+                      className={({ isActive }) =>
+                        `group relative flex min-h-touch items-center gap-3 rounded-2xl px-3 py-2.5 text-[15px] font-bold transition ${
+                          isActive
+                            ? `bg-gradient-to-r ${themeForPath(link.to).gradient} text-white shadow-soft`
+                            : 'text-slate-600 hover:bg-white/70 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-white'
+                        }`
+                      }
+                    >
+                      <span aria-hidden="true" className="text-lg">{link.icon}</span>
+                      {t(`nav.${link.key}`)}
+                    </NavLink>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </nav>
+
         {profile?.full_name ? (
-          <div className="mt-4 flex items-center gap-3 rounded-2xl border border-white/60 bg-white/60 p-3 dark:border-slate-700/50 dark:bg-slate-800/50">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-gradient text-sm font-bold text-white">
+          <div className="mt-2 flex items-center gap-3 rounded-2xl border border-white/60 bg-white/70 p-3 dark:border-slate-700/50 dark:bg-slate-800/60">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-gradient text-sm font-bold text-white">
               {profile.full_name.slice(0, 1).toUpperCase()}
             </span>
-            <span className="truncate text-sm font-semibold text-slate-700 dark:text-slate-200">{profile.full_name}</span>
+            <span className="truncate text-sm font-bold text-slate-700 dark:text-slate-200">{profile.full_name}</span>
           </div>
         ) : null}
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="glass sticky top-0 z-30 border-b">
-          <div className="flex items-center gap-3 px-4 py-3">
-            <h1 className="truncate text-xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 lg:text-2xl">{title}</h1>
+          <div className="flex items-center gap-3 px-4 py-2.5">
+            {/* Section badge doubles as a "you are here" marker. */}
+            <span
+              aria-hidden="true"
+              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${theme.gradient} text-xl shadow-soft`}
+            >
+              {theme.icon}
+            </span>
+            <h1 className="truncate text-lg font-extrabold tracking-tight text-slate-900 dark:text-slate-100 lg:text-xl">{title}</h1>
+
             <div className="ml-auto flex items-center gap-2">
               <SeasonPicker />
+              {profile?.full_name ? (
+                <span
+                  title={profile.full_name}
+                  className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-gradient text-sm font-bold text-white shadow-soft sm:flex"
+                >
+                  {profile.full_name.slice(0, 1).toUpperCase()}
+                </span>
+              ) : null}
             </div>
           </div>
+
           <div className="px-4 pb-3">
             <form
               role="search"
@@ -191,7 +269,7 @@ export function AppLayout() {
           <SyncBanner />
         </header>
 
-        <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-32 pt-5 lg:pb-10">
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-32 pt-6 lg:px-8 lg:pb-12">
           <div key={location.pathname} className="animate-fade-up">
             <Outlet />
           </div>

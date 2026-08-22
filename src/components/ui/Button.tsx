@@ -1,6 +1,6 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 
-type Variant = 'primary' | 'secondary' | 'danger' | 'ghost';
+type Variant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'onAccent';
 type Size = 'md' | 'lg' | 'sm';
 
 const VARIANTS: Record<Variant, string> = {
@@ -11,6 +11,8 @@ const VARIANTS: Record<Variant, string> = {
   danger:
     'bg-gradient-to-b from-red-600 to-red-700 text-white shadow-soft hover:from-red-500 hover:to-red-700 active:scale-[0.98] disabled:opacity-60',
   ghost: 'bg-transparent text-slate-700 hover:bg-slate-900/5 active:scale-[0.98] dark:text-slate-200 dark:hover:bg-white/10',
+  // Sits on top of a coloured gradient band.
+  onAccent: 'bg-white/95 text-slate-900 shadow-soft hover:bg-white active:scale-[0.98] dark:bg-white/95 dark:text-slate-900',
 };
 
 const SIZES: Record<Size, string> = {

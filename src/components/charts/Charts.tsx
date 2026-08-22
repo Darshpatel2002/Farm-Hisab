@@ -25,7 +25,7 @@ import { formatCurrency, formatNumber } from '../../lib/formatting/number';
  * targets and a readable palette that also works in dark mode.
  */
 
-const PALETTE = ['#2b7632', '#8a6a43', '#5fb05d', '#b45309', '#0f766e', '#7c3aed', '#be123c', '#0369a1', '#4d7c0f', '#a16207'];
+const PALETTE = ['#10b981', '#6366f1', '#f59e0b', '#06b6d4', '#8b5cf6', '#ef4444', '#84cc16', '#0ea5e9', '#d946ef', '#f97316'];
 
 export interface ChartDatum {
   name: string;
@@ -58,11 +58,15 @@ export function BarChartCard({
       ) : (
         <ResponsiveContainer width="100%" height={height}>
           <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
             <XAxis dataKey="name" tick={{ fontSize: 12 }} interval={0} angle={-25} textAnchor="end" height={62} />
             <YAxis tick={{ fontSize: 12 }} tickFormatter={(v: number) => format(v)} width={70} />
-            <Tooltip formatter={(v: number) => format(v)} />
-            <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+            <Tooltip
+              formatter={(v: number) => format(v)}
+              contentStyle={{ borderRadius: 16, border: '1px solid #e2e8f0', boxShadow: '0 10px 40px -12px rgba(16,40,24,0.3)' }}
+              cursor={{ fill: 'rgba(16,185,129,0.08)' }}
+            />
+            <Bar dataKey="value" radius={[10, 10, 0, 0]}>
               {data.map((entry, index) => (
                 <Cell key={entry.name} fill={entry.value < 0 ? '#b91c1c' : PALETTE[index % PALETTE.length]} />
               ))}
