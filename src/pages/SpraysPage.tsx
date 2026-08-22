@@ -5,6 +5,7 @@ import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { NumberField, SelectField, TextAreaField, TextField } from '../components/ui/Field';
 import { AllocationField, CropField, DateField, FarmField, UnitField, enumOptions } from '../components/records/Selectors';
+import { PhotoField, PhotoThumb } from '../components/records/PhotoField';
 import { FarmSplit, buildTargets } from '../components/records/FarmSplit';
 import { useDeleteRecord, useRecords, useSaveRecord } from '../features/common/useRecords';
 import { findSourceExpense, replaceExpenseAllocations } from '../features/expenses/allocationApi';
@@ -64,6 +65,7 @@ export default function SpraysPage() {
       labour_cost: '0',
       application_cost: '0',
       notes: '',
+      photo_url: '',
     }),
     [seasonId, recent],
   );
@@ -98,6 +100,7 @@ export default function SpraysPage() {
             labour_cost: String(row.labour_cost),
             application_cost: String(row.application_cost),
             notes: row.notes ?? '',
+            photo_url: row.photo_url ?? '',
           }
         : defaults,
     );
@@ -129,6 +132,7 @@ export default function SpraysPage() {
         labour_cost: data.labour_cost,
         application_cost: data.application_cost,
         notes: data.notes || null,
+        photo_url: data.photo_url || null,
       },
     });
 
@@ -185,6 +189,7 @@ export default function SpraysPage() {
           ) : null}
           <RecordLine label={t('sprays.materialCost')} value={formatCurrency(row.material_cost)} />
           <RecordLine label={t('common.labourCost')} value={formatCurrency(row.labour_cost)} />
+          {row.photo_url ? <PhotoThumb url={row.photo_url} /> : null}
         </div>
       )}
     >
@@ -334,6 +339,7 @@ export default function SpraysPage() {
           error={form.errors.notes}
           onChange={(e) => form.setField('notes', e.target.value)}
         />
+        <PhotoField value={str(form.values, 'photo_url')} onChange={(url) => form.setField('photo_url', url)} />
       </Modal>
     </RecordScreen>
   );

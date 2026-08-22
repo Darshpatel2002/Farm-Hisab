@@ -5,6 +5,7 @@ import { useAppData } from '../../hooks/useAppData';
 import { useAuth } from '../../hooks/useAuth';
 import { useSyncStatus } from '../../hooks/usePreferences';
 import { flushQueue } from '../../lib/offline/queue';
+import { ExitGuard } from './ExitGuard';
 
 /**
  * Desktop: sidebar navigation.
@@ -110,6 +111,7 @@ export function AppLayout() {
 
   return (
     <div className="min-h-screen lg:flex">
+      <ExitGuard />
       <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 lg:block">
         <div className="mb-6 flex items-center gap-2">
           <span aria-hidden="true" className="text-2xl">

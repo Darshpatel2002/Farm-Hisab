@@ -115,6 +115,7 @@ export const activitySchema = z.object({
   tractor_hours: optionalNonNegative,
   vendor: optionalText(80),
   notes: optionalText(500),
+  photo_url: optionalText(500),
 });
 
 export const irrigationSchema = z.object({
@@ -127,6 +128,7 @@ export const irrigationSchema = z.object({
   hours: optionalNonNegative,
   cost: nonNegativeNumber,
   notes: optionalText(500),
+  photo_url: optionalText(500),
 });
 
 export const spraySchema = z
@@ -147,6 +149,7 @@ export const spraySchema = z
     labour_cost: nonNegativeNumber,
     application_cost: nonNegativeNumber,
     notes: optionalText(500),
+    photo_url: optionalText(500),
   })
   .refine((v) => v.scope !== 'farm' || Boolean(v.farm_id), { message: 'validation.required', path: ['farm_id'] })
   .refine((v) => v.scope !== 'crop' || Boolean(v.crop_id), { message: 'validation.required', path: ['crop_id'] });
@@ -162,6 +165,7 @@ export const fertilizerSchema = z.object({
   rate: nonNegativeNumber,
   labour_cost: nonNegativeNumber,
   notes: optionalText(500),
+  photo_url: optionalText(500),
 });
 
 export const seedSchema = z.object({
@@ -176,6 +180,7 @@ export const seedSchema = z.object({
   price_per_unit: nonNegativeNumber,
   supplier: optionalText(100),
   notes: optionalText(500),
+  photo_url: optionalText(500),
 });
 
 // --- Money -------------------------------------------------------------
@@ -201,6 +206,7 @@ export const expenseSchema = z
     unit: optionalText(20),
     payment_method: z.enum(['cash', 'upi', 'bank', 'credit', 'other']),
     notes: optionalText(500),
+    photo_url: optionalText(500),
     allocations: z.array(expenseAllocationLineSchema).default([]),
   })
   .refine((v) => v.allocation_method !== 'direct' || Boolean(v.farm_id), {
@@ -234,6 +240,7 @@ export const harvestSchema = z
     harvest_cost: nonNegativeNumber,
     transport_cost: nonNegativeNumber,
     notes: optionalText(500),
+    photo_url: optionalText(500),
   })
   .refine((v) => !v.end_date || v.end_date >= v.start_date, { message: 'validation.endBeforeStart', path: ['end_date'] })
   .refine((v) => Number(v.wastage) <= Number(v.quantity), { message: 'validation.wastageTooHigh', path: ['wastage'] });
@@ -254,6 +261,7 @@ export const saleSchema = z.object({
   payment_status: z.enum(['received', 'pending', 'partial']),
   amount_received: nonNegativeNumber,
   notes: optionalText(500),
+  photo_url: optionalText(500),
 });
 
 export const unitSchema = z.object({

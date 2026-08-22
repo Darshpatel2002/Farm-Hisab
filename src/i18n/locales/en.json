@@ -4,6 +4,19 @@
     "tagline": "Your farm notebook",
     "loading": "Loading..."
   },
+  "exit": {
+    "title": "Leave Farm Hisab?",
+    "message": "You pressed back. Do you want to stay in the app or log out?",
+    "stay": "Stay in app"
+  },
+  "photo": {
+    "label": "Photo / bill",
+    "add": "Add photo",
+    "uploading": "Uploading...",
+    "uploadFailed": "Could not upload the photo. Please try again.",
+    "tooLarge": "Photo is too large. Please use one under 8 MB.",
+    "needsInternet": "A photo needs internet. Your record is still saved without it."
+  },
   "nav": {
     "dashboard": "Home",
     "farms": "Farms",
@@ -112,6 +125,29 @@
     "welcomeBack": "Welcome back",
     "signInSubtitle": "Sign in to see your farms",
     "signUpSubtitle": "Start your farm notebook"
+  },
+  "landing": {
+    "home": "Home",
+    "features": "Features",
+    "signIn": "Sign in",
+    "getStarted": "Get started",
+    "learnMore": "Learn more",
+    "badge": "Made for farmers",
+    "heroTitle": "Run your farm like a business.",
+    "heroSubtitle": "Track every expense, harvest and sale across all your farms and crops - and see exactly where you make money. Simple enough for the field, powerful enough for the whole season.",
+    "featuresTitle": "Everything your farm notebook should be",
+    "featuresSubtitle": "Built for real farms - fast entry, clear numbers and works even when the internet does not.",
+    "ctaTitle": "Ready to know your real profit?",
+    "ctaSubtitle": "Start recording today. Your data stays private in your own account.",
+    "footer": "Your farm, your numbers.",
+    "feature": {
+      "farms": { "title": "All farms in one place", "body": "Manage many farms, crops and seasons together with a clear picture of each." },
+      "money": { "title": "Every rupee tracked", "body": "Record expenses, sales and payments, split shared costs fairly across farms." },
+      "reports": { "title": "Profit you can trust", "body": "See profit per acre, best crops and farm rankings from your own numbers." },
+      "photos": { "title": "Attach bills & photos", "body": "Add a photo of a bill or the field to any record - never lose a receipt again." },
+      "offline": { "title": "Works offline", "body": "Enter records in the field with no signal. Everything syncs when you are back online." },
+      "language": { "title": "Your language", "body": "Use the app fully in English or Gujarati, switch anytime." }
+    }
   },
   "setup": {
     "title": "Setup needed",
@@ -426,10 +462,14 @@
     "roleAdmin": "Owner / admin",
     "roleMember": "Family member",
     "backup": "Backup and export",
+    "backupHelp": "Download your records as a spreadsheet or printable document. Choose CSV, Excel or PDF.",
     "exportJson": "Export all data (JSON)",
-    "exportExpenses": "Export expenses (CSV)",
-    "exportHarvest": "Export harvest (CSV)",
-    "exportSales": "Export sales (CSV)",
+    "exportCsv": "Export CSV",
+    "exportExcel": "Export Excel",
+    "exportPdf": "Export PDF",
+    "exportExpenses": "Expenses",
+    "exportHarvest": "Harvest",
+    "exportSales": "Sales",
     "exportReport": "Export report (CSV)",
     "import": "Import from JSON backup",
     "importHelp": "Rows that already exist are skipped. Nothing is deleted.",

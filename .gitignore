@@ -14,3 +14,7 @@ coverage
 Thumbs.db
 .idea
 *.tsbuildinfo
+
+# Compiled JS accidentally emitted into the TS source tree by `tsc -b`.
+src/**/*.js
+/vite.config.js

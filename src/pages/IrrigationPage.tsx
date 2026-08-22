@@ -5,6 +5,7 @@ import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { NumberField, SelectField, TextAreaField } from '../components/ui/Field';
 import { AllocationField, DateField, FarmField, enumOptions } from '../components/records/Selectors';
+import { PhotoField, PhotoThumb } from '../components/records/PhotoField';
 import { useDeleteRecord, useRecords, useSaveRecord } from '../features/common/useRecords';
 import { useZodForm, str } from '../features/common/useZodForm';
 import { useRecent } from '../hooks/usePreferences';
@@ -43,6 +44,7 @@ export default function IrrigationPage() {
       hours: '',
       cost: '',
       notes: '',
+      photo_url: '',
     }),
     [seasonId, recent],
   );
@@ -63,6 +65,7 @@ export default function IrrigationPage() {
             hours: row.hours ?? '',
             cost: String(row.cost),
             notes: row.notes ?? '',
+            photo_url: row.photo_url ?? '',
           }
         : defaults,
     );
@@ -87,6 +90,7 @@ export default function IrrigationPage() {
         hours: data.hours,
         cost: data.cost,
         notes: data.notes || null,
+        photo_url: data.photo_url || null,
       },
     });
     remember({ farm_id: data.farm_id, water_source: data.water_source });
@@ -118,6 +122,7 @@ export default function IrrigationPage() {
           </p>
           <RecordLine label={t('irrigation.waterSource')} value={t(`waterSources.${row.water_source}`)} />
           {row.hours ? <RecordLine label={t('irrigation.hours')} value={formatNumber(row.hours, 1)} /> : null}
+          {row.photo_url ? <PhotoThumb url={row.photo_url} /> : null}
         </div>
       )}
     >
@@ -190,6 +195,7 @@ export default function IrrigationPage() {
           error={form.errors.notes}
           onChange={(e) => form.setField('notes', e.target.value)}
         />
+        <PhotoField value={str(form.values, 'photo_url')} onChange={(url) => form.setField('photo_url', url)} />
       </Modal>
     </RecordScreen>
   );

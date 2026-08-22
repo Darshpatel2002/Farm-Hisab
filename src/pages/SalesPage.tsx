@@ -5,6 +5,7 @@ import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { NumberField, SelectField, TextAreaField, TextField } from '../components/ui/Field';
 import { AllocationField, DateField, FarmField, UnitField, enumOptions } from '../components/records/Selectors';
+import { PhotoField, PhotoThumb } from '../components/records/PhotoField';
 import { useDeleteRecord, useRecords, useSaveRecord } from '../features/common/useRecords';
 import { useZodForm, str } from '../features/common/useZodForm';
 import { useRecent } from '../hooks/usePreferences';
@@ -49,6 +50,7 @@ export default function SalesPage() {
       payment_status: 'received',
       amount_received: '0',
       notes: '',
+      photo_url: '',
     }),
     [seasonId, recent, settings?.default_weight_unit],
   );
@@ -81,6 +83,7 @@ export default function SalesPage() {
             payment_status: row.payment_status,
             amount_received: String(row.amount_received),
             notes: row.notes ?? '',
+            photo_url: row.photo_url ?? '',
           }
         : defaults,
     );
@@ -110,6 +113,7 @@ export default function SalesPage() {
         payment_status: data.payment_status,
         amount_received: data.payment_status === 'received' ? net : data.amount_received,
         notes: data.notes || null,
+        photo_url: data.photo_url || null,
       },
     });
     remember({ farm_id: data.farm_id ?? '', buyer: data.buyer, unit: data.unit });
@@ -147,6 +151,7 @@ export default function SalesPage() {
             value={formatCurrency(row.transport_cost + row.commission + row.other_deductions)}
           />
           <RecordLine label={t('sales.paymentStatus')} value={t(`paymentStatus.${row.payment_status}`)} />
+          {row.photo_url ? <PhotoThumb url={row.photo_url} /> : null}
         </div>
       )}
     >
@@ -265,6 +270,7 @@ export default function SalesPage() {
           error={form.errors.notes}
           onChange={(e) => form.setField('notes', e.target.value)}
         />
+        <PhotoField value={str(form.values, 'photo_url')} onChange={(url) => form.setField('photo_url', url)} />
       </Modal>
     </RecordScreen>
   );

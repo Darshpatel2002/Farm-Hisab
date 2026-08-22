@@ -255,7 +255,7 @@ export function UnitField({
   error,
   label,
 }: {
-  kind: UnitKind;
+  kind: UnitKind | UnitKind[];
   value: string;
   onChange: (value: string) => void;
   error?: string;
@@ -263,10 +263,13 @@ export function UnitField({
 }) {
   const { t, i18n } = useTranslation();
   const { units } = useAppData();
-  const options: Option[] = unitsOfKind(units, kind).map((unit) => ({
-    value: unit.code,
-    label: i18n.language === 'gu' && unit.label_gu ? unit.label_gu : unit.label_en,
-  }));
+  const kinds = Array.isArray(kind) ? kind : [kind];
+  const options: Option[] = kinds
+    .flatMap((k) => unitsOfKind(units, k))
+    .map((unit) => ({
+      value: unit.code,
+      label: i18n.language === 'gu' && unit.label_gu ? unit.label_gu : unit.label_en,
+    }));
   return (
     <SelectField
       label={label ?? t('common.unit')}

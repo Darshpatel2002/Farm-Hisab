@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../components/ui/Button';
 import { TextField } from '../components/ui/Field';
@@ -14,6 +15,7 @@ type Mode = 'signIn' | 'signUp' | 'forgot';
 export default function AuthPage() {
   const { t, i18n } = useTranslation();
   const { signIn, signUp, resetPassword } = useAuth();
+  const navigate = useNavigate();
   const toast = useToast();
   const [mode, setMode] = useState<Mode>('signIn');
   const [busy, setBusy] = useState(false);
@@ -61,8 +63,15 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-brand-50 p-4 dark:bg-slate-950">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-brand-50 to-white p-4 dark:from-slate-950 dark:to-slate-900">
       <div className="w-full max-w-md">
+        <button
+          type="button"
+          onClick={() => navigate('/')}
+          className="mb-3 text-sm font-semibold text-brand-800 underline dark:text-brand-200"
+        >
+          ← {t('landing.home')}
+        </button>
         <div className="mb-5 text-center">
           <span aria-hidden="true" className="text-5xl">
             🌿
@@ -102,6 +111,7 @@ export default function AuthPage() {
               label={t('auth.email')}
               type="email"
               required
+              name="email"
               inputMode="email"
               autoComplete="email"
               value={str(form.values, 'email')}
@@ -114,6 +124,7 @@ export default function AuthPage() {
                 label={t('auth.password')}
                 type="password"
                 required
+                name="password"
                 autoComplete={mode === 'signUp' ? 'new-password' : 'current-password'}
                 value={str(form.values, 'password')}
                 error={form.errors.password}

@@ -30,6 +30,7 @@ const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const QuickAddPage = lazy(() => import('./pages/QuickAddPage'));
 const MorePage = lazy(() => import('./pages/MorePage'));
 const SearchPage = lazy(() => import('./pages/SearchPage'));
+const LandingPage = lazy(() => import('./pages/LandingPage'));
 
 // Data is small and read often - keep it in memory for a minute between screens.
 const queryClient = new QueryClient({
@@ -50,7 +51,16 @@ function ProtectedRoutes() {
   useEffect(() => startSyncWatcher(() => void queryClient.invalidateQueries()), []);
 
   if (loading) return <LoadingBlock label={t('app.loading')} />;
-  if (!session) return <AuthPage />;
+  if (!session)
+    return (
+      <Suspense fallback={<LoadingBlock label={t('app.loading')} />}>
+        <Routes>
+          <Route index element={<LandingPage />} />
+          <Route path="login" element={<AuthPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
+    );
 
   return (
     <AppDataProvider>

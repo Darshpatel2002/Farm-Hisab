@@ -5,6 +5,7 @@ import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { NumberField, SelectField, TextAreaField, TextField } from '../components/ui/Field';
 import { AllocationField, DateField, FarmField, enumOptions } from '../components/records/Selectors';
+import { PhotoField, PhotoThumb } from '../components/records/PhotoField';
 import { useDeleteRecord, useRecords, useSaveRecord } from '../features/common/useRecords';
 import { useZodForm, str } from '../features/common/useZodForm';
 import { useRecent } from '../hooks/usePreferences';
@@ -45,6 +46,7 @@ export default function ActivitiesPage() {
       tractor_hours: '',
       vendor: recent.vendor,
       notes: '',
+      photo_url: '',
     }),
     [seasonId, recent],
   );
@@ -69,6 +71,7 @@ export default function ActivitiesPage() {
             tractor_hours: activity.tractor_hours ?? '',
             vendor: activity.vendor ?? '',
             notes: activity.notes ?? '',
+            photo_url: activity.photo_url ?? '',
           }
         : defaults,
     );
@@ -96,6 +99,7 @@ export default function ActivitiesPage() {
         tractor_hours: data.tractor_hours,
         vendor: data.vendor || null,
         notes: data.notes || null,
+        photo_url: data.photo_url || null,
       },
     });
     remember({ farm_id: data.farm_id, activity_type: data.activity_type, vendor: data.vendor ?? '' });
@@ -130,6 +134,7 @@ export default function ActivitiesPage() {
           {row.tractor_hours ? (
             <RecordLine label={t('activities.tractorHours')} value={formatNumber(row.tractor_hours, 1)} />
           ) : null}
+          {row.photo_url ? <PhotoThumb url={row.photo_url} /> : null}
         </div>
       )}
     >
@@ -213,6 +218,7 @@ export default function ActivitiesPage() {
           error={form.errors.notes}
           onChange={(e) => form.setField('notes', e.target.value)}
         />
+        <PhotoField value={str(form.values, 'photo_url')} onChange={(url) => form.setField('photo_url', url)} />
       </Modal>
     </RecordScreen>
   );

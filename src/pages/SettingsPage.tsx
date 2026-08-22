@@ -1,19 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { Card, PageHeader, SectionTitle } from '../components/ui/Layout';
 import { Button } from '../components/ui/Button';
 import { CheckboxField, NumberField, SelectField, TextField } from '../components/ui/Field';
-import { ConfirmDialog } from '../components/ui/Modal';
 import { useToast } from '../components/ui/Toast';
 import { useAppData } from '../hooks/useAppData';
 import { useAuth } from '../hooks/useAuth';
 import { useRecords, useSaveRecord } from '../features/common/useRecords';
 import { useSyncStatus } from '../hooks/usePreferences';
-import { callRpc, updateRow } from '../lib/supabase/crud';
+import { updateRow } from '../lib/supabase/crud';
 import { flushQueue } from '../lib/offline/queue';
-import { exportBackup, importBackup, isBackupFile } from '../lib/export/backup';
-import { downloadCsv, downloadJson, timestampedName } from '../lib/export/files';
+import { downloadCsv, downloadExcel, downloadPdf, timestampedName, type ExportSheet } from '../lib/export/files';
 import { toAppError } from '../lib/errors';
 import { SUPPORTED_LANGUAGES, setLanguage } from '../i18n';
 import { useSeasonReport } from '../features/reports/useSeasonReport';
@@ -38,7 +36,7 @@ export default function SettingsPage() {
   const toast = useToast();
   const queryClient = useQueryClient();
   const { profile, isAdmin, refreshProfile, signOut, updatePassword } = useAuth();
-  const { settings, units, seasons, seasonId, refresh } = useAppData();
+  const { settings, units, seasons, seasonId } = useAppData();
   const syncStatus = useSyncStatus();
   const { dataset } = useSeasonReport(seasonId);
 
@@ -48,9 +46,7 @@ export default function SettingsPage() {
   const household = householdQuery.data?.[0] ?? null;
 
   const [busy, setBusy] = useState<string | null>(null);
-  const [confirmDemoRemoval, setConfirmDemoRemoval] = useState(false);
   const [newPassword, setNewPassword] = useState('');
-  const fileInput = useRef<HTMLInputElement>(null);
 
   const areaUnits = useMemo(() => unitsOfKind(units, 'area'), [units]);
   const weightUnits = useMemo(() => unitsOfKind(units, 'weight'), [units]);
@@ -138,46 +134,11 @@ export default function SettingsPage() {
     }
   };
 
-  const runRpc = async (fn: 'load_demo_data' | 'remove_demo_data') => {
-    setBusy(fn);
-    try {
-      await callRpc(fn);
-      await refresh();
-      toast.success(t('common.saved'));
-    } catch (error) {
-      toast.error(t(toAppError(error).messageKey));
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  const doExportJson = async () => {
-    setBusy('export');
-    try {
-      downloadJson(timestampedName('farm-hisab-backup', 'json'), await exportBackup());
-    } catch (error) {
-      toast.error(t(toAppError(error).messageKey));
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  const doImport = async (file: File) => {
-    if (!profile) return;
-    setBusy('import');
-    try {
-      const parsed: unknown = JSON.parse(await file.text());
-      if (!isBackupFile(parsed)) throw new Error('Invalid backup file');
-      const count = await importBackup(parsed, profile.household_id);
-      await refresh();
-      toast.success(t('settings.importDone', { count }));
-    } catch (error) {
-      toast.error(t(toAppError(error).messageKey));
-    } finally {
-      setBusy(null);
-      if (fileInput.current) fileInput.current.value = '';
-    }
-  };
+  const backupSheets = (): ExportSheet[] => [
+    { name: t('settings.exportExpenses'), rows: dataset.expenses as unknown as Array<Record<string, unknown>> },
+    { name: t('settings.exportHarvest'), rows: dataset.harvests as unknown as Array<Record<string, unknown>> },
+    { name: t('settings.exportSales'), rows: dataset.sales as unknown as Array<Record<string, unknown>> },
+  ];
 
   const changeMemberRole = async (member: Profile, role: 'admin' | 'member') => {
     try {
@@ -363,63 +324,19 @@ export default function SettingsPage() {
 
       <Card className="mb-4">
         <SectionTitle title={t('settings.backup')} />
+        <p className="mb-3 text-sm text-slate-600 dark:text-slate-400">{t('settings.backupHelp')}</p>
         <div className="flex flex-wrap gap-3">
-          <Button loading={busy === 'export'} onClick={() => void doExportJson()}>
-            {t('settings.exportJson')}
+          <Button variant="secondary" onClick={() => downloadCsv(timestampedName('expenses', 'csv'), dataset.expenses as unknown as Array<Record<string, unknown>>)}>
+            {t('settings.exportCsv')}
           </Button>
-          <Button
-            variant="secondary"
-            onClick={() => downloadCsv(timestampedName('expenses', 'csv'), dataset.expenses as unknown as Array<Record<string, unknown>>)}
-          >
-            {t('settings.exportExpenses')}
+          <Button variant="secondary" onClick={() => downloadExcel(timestampedName('farm-hisab-backup', 'xls'), backupSheets())}>
+            {t('settings.exportExcel')}
           </Button>
-          <Button
-            variant="secondary"
-            onClick={() => downloadCsv(timestampedName('harvest', 'csv'), dataset.harvests as unknown as Array<Record<string, unknown>>)}
-          >
-            {t('settings.exportHarvest')}
+          <Button variant="secondary" onClick={() => downloadPdf(t('settings.backup'), backupSheets())}>
+            {t('settings.exportPdf')}
           </Button>
-          <Button
-            variant="secondary"
-            onClick={() => downloadCsv(timestampedName('sales', 'csv'), dataset.sales as unknown as Array<Record<string, unknown>>)}
-          >
-            {t('settings.exportSales')}
-          </Button>
-        </div>
-        <div className="mt-4">
-          <label className="label" htmlFor="import-file">
-            {t('settings.import')}
-          </label>
-          <input
-            id="import-file"
-            ref={fileInput}
-            type="file"
-            accept="application/json"
-            disabled={busy === 'import'}
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) void doImport(file);
-            }}
-            className="input"
-          />
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{t('settings.importHelp')}</p>
         </div>
       </Card>
-
-      {isAdmin ? (
-        <Card className="mb-4">
-          <SectionTitle title={t('settings.demoData')} />
-          <p className="mb-3 text-sm text-slate-600 dark:text-slate-400">{t('settings.demoHelp')}</p>
-          <div className="flex flex-wrap gap-3">
-            <Button loading={busy === 'load_demo_data'} onClick={() => void runRpc('load_demo_data')}>
-              {t('settings.loadDemo')}
-            </Button>
-            <Button variant="danger" onClick={() => setConfirmDemoRemoval(true)}>
-              {t('settings.removeDemo')}
-            </Button>
-          </div>
-        </Card>
-      ) : null}
 
       {isAdmin ? <DeleteDataCard /> : null}
 
@@ -433,19 +350,6 @@ export default function SettingsPage() {
           {t('auth.signOut')}
         </Button>
       </Card>
-
-      <ConfirmDialog
-        open={confirmDemoRemoval}
-        title={t('settings.removeDemo')}
-        message={t('settings.demoHelp')}
-        confirmLabel={t('settings.removeDemo')}
-        busy={busy === 'remove_demo_data'}
-        onCancel={() => setConfirmDemoRemoval(false)}
-        onConfirm={async () => {
-          await runRpc('remove_demo_data');
-          setConfirmDemoRemoval(false);
-        }}
-      />
     </section>
   );
 }

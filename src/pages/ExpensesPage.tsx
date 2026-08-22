@@ -6,6 +6,7 @@ import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { NumberField, SelectField, TextAreaField, TextField } from '../components/ui/Field';
 import { AllocationField, CropField, DateField, FarmField, enumOptions } from '../components/records/Selectors';
+import { PhotoField, PhotoThumb } from '../components/records/PhotoField';
 import { FarmSplit, buildTargets } from '../components/records/FarmSplit';
 import { useDeleteRecord, useRecords, useSaveRecord } from '../features/common/useRecords';
 import { loadExpenseAllocations, replaceExpenseAllocations } from '../features/expenses/allocationApi';
@@ -75,6 +76,7 @@ export default function ExpensesPage() {
       unit: '',
       payment_method: 'cash',
       notes: '',
+      photo_url: '',
       allocations: [],
     }),
     [seasonId, recent],
@@ -104,6 +106,7 @@ export default function ExpensesPage() {
         unit: expense.unit ?? '',
         payment_method: expense.payment_method,
         notes: expense.notes ?? '',
+        photo_url: expense.photo_url ?? '',
         allocations: [],
       });
       if (expense.allocation_method !== 'direct') {
@@ -168,6 +171,7 @@ export default function ExpensesPage() {
         unit: data.unit || null,
         payment_method: data.payment_method,
         notes: data.notes || null,
+        photo_url: data.photo_url || null,
       },
     });
 
@@ -254,6 +258,7 @@ export default function ExpensesPage() {
               <Badge tone="info">{t('expenses.linkedRecord', { source: t(`nav.${sourceNavKey(row.source_type)}`) })}</Badge>
             </p>
           ) : null}
+          {row.photo_url ? <PhotoThumb url={row.photo_url} /> : null}
         </div>
       )}
     >
@@ -381,6 +386,7 @@ export default function ExpensesPage() {
           error={form.errors.notes}
           onChange={(e) => form.setField('notes', e.target.value)}
         />
+        <PhotoField value={str(form.values, 'photo_url')} onChange={(url) => form.setField('photo_url', url)} />
       </Modal>
     </RecordScreen>
   );

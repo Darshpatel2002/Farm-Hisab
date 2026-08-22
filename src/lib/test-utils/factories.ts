@@ -110,6 +110,7 @@ export function expense(
     notes: null,
     source_type: 'manual',
     source_id: null,
+    photo_url: null,
     ...options,
   };
 }
@@ -156,6 +157,7 @@ export function harvest(id: string, farmId: string, quantity: number, options: P
     transport_cost: 0,
     total_cost: 0,
     notes: null,
+    photo_url: null,
     ...options,
   };
 }
@@ -186,6 +188,7 @@ export function sale(id: string, farmId: string | null, quantity: number, price:
     payment_status: 'received',
     amount_received: gross - transport - commission - other,
     notes: null,
+    photo_url: null,
     ...options,
   };
 }
@@ -208,6 +211,7 @@ export function activity(id: string, farmId: string, options: Partial<Activity> 
     tractor_hours: null,
     vendor: null,
     notes: null,
+    photo_url: null,
     ...options,
   };
 }
@@ -226,6 +230,7 @@ export function irrigation(id: string, farmId: string, options: Partial<Irrigati
     hours: null,
     cost: 0,
     notes: null,
+    photo_url: null,
     ...options,
   };
 }
@@ -252,6 +257,7 @@ export function spray(id: string, farmId: string | null, options: Partial<SprayR
     application_cost: 0,
     total_cost: 0,
     notes: null,
+    photo_url: null,
     ...options,
   };
 }

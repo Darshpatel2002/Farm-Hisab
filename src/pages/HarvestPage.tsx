@@ -5,6 +5,7 @@ import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { NumberField, SelectField, TextAreaField } from '../components/ui/Field';
 import { AllocationField, DateField, FarmField, UnitField, enumOptions } from '../components/records/Selectors';
+import { PhotoField, PhotoThumb } from '../components/records/PhotoField';
 import { useDeleteRecord, useRecords, useSaveRecord } from '../features/common/useRecords';
 import { useZodForm, str } from '../features/common/useZodForm';
 import { useRecent } from '../hooks/usePreferences';
@@ -48,6 +49,7 @@ export default function HarvestPage() {
       harvest_cost: '0',
       transport_cost: '0',
       notes: '',
+      photo_url: '',
     }),
     [seasonId, recent, settings?.default_weight_unit],
   );
@@ -74,6 +76,7 @@ export default function HarvestPage() {
             harvest_cost: String(row.harvest_cost),
             transport_cost: String(row.transport_cost),
             notes: row.notes ?? '',
+            photo_url: row.photo_url ?? '',
           }
         : defaults,
     );
@@ -102,6 +105,7 @@ export default function HarvestPage() {
         harvest_cost: data.harvest_cost,
         transport_cost: data.transport_cost,
         notes: data.notes || null,
+        photo_url: data.photo_url || null,
       },
     });
     remember({ farm_id: data.farm_id, unit: data.unit });
@@ -137,6 +141,7 @@ export default function HarvestPage() {
           <RecordLine label={t('harvest.wastage')} value={`${formatNumber(row.wastage, 2)} ${row.unit}`} />
           <RecordLine label={t('harvest.quality')} value={t(`quality.${row.quality}`)} />
           <RecordLine label={t('common.totalCost')} value={formatCurrency(row.total_cost)} />
+          {row.photo_url ? <PhotoThumb url={row.photo_url} /> : null}
         </div>
       )}
     >
@@ -251,6 +256,7 @@ export default function HarvestPage() {
           error={form.errors.notes}
           onChange={(e) => form.setField('notes', e.target.value)}
         />
+        <PhotoField value={str(form.values, 'photo_url')} onChange={(url) => form.setField('photo_url', url)} />
       </Modal>
     </RecordScreen>
   );

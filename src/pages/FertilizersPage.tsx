@@ -5,6 +5,7 @@ import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { NumberField, TextAreaField, TextField } from '../components/ui/Field';
 import { AllocationField, DateField, FarmField, UnitField } from '../components/records/Selectors';
+import { PhotoField, PhotoThumb } from '../components/records/PhotoField';
 import { useDeleteRecord, useRecords, useSaveRecord } from '../features/common/useRecords';
 import { useZodForm, str } from '../features/common/useZodForm';
 import { useRecent } from '../hooks/usePreferences';
@@ -42,6 +43,7 @@ export default function FertilizersPage() {
       rate: '',
       labour_cost: '0',
       notes: '',
+      photo_url: '',
     }),
     [seasonId, recent],
   );
@@ -65,6 +67,7 @@ export default function FertilizersPage() {
             rate: String(row.rate),
             labour_cost: String(row.labour_cost),
             notes: row.notes ?? '',
+            photo_url: row.photo_url ?? '',
           }
         : defaults,
     );
@@ -90,6 +93,7 @@ export default function FertilizersPage() {
         material_cost: round(Number(data.quantity) * Number(data.rate), 2),
         labour_cost: data.labour_cost,
         notes: data.notes || null,
+        photo_url: data.photo_url || null,
       },
     });
     remember({ farm_id: data.farm_id, product_name: data.product_name, unit: data.unit });
@@ -121,6 +125,7 @@ export default function FertilizersPage() {
           </p>
           <RecordLine label={t('common.quantity')} value={`${formatNumber(row.quantity, 2)} ${row.unit}`} />
           <RecordLine label={t('common.labourCost')} value={formatCurrency(row.labour_cost)} />
+          {row.photo_url ? <PhotoThumb url={row.photo_url} /> : null}
         </div>
       )}
     >
@@ -172,7 +177,7 @@ export default function FertilizersPage() {
             onChange={(e) => form.setField('quantity', e.target.value)}
           />
           <UnitField
-            kind="weight"
+            kind={['weight', 'volume']}
             value={str(form.values, 'unit')}
             error={form.errors.unit}
             onChange={(value) => form.setField('unit', value)}
@@ -204,6 +209,7 @@ export default function FertilizersPage() {
           error={form.errors.notes}
           onChange={(e) => form.setField('notes', e.target.value)}
         />
+        <PhotoField value={str(form.values, 'photo_url')} onChange={(url) => form.setField('photo_url', url)} />
       </Modal>
     </RecordScreen>
   );

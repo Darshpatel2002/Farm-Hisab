@@ -185,6 +185,7 @@ export interface Expense extends AuditColumns, SoftDelete {
   notes: string | null;
   source_type: ExpenseSource;
   source_id: UUID | null;
+  photo_url: string | null;
 }
 
 export interface ExpenseAllocation {
@@ -215,6 +216,7 @@ export interface Activity extends AuditColumns, SoftDelete {
   tractor_hours: number | null;
   vendor: string | null;
   notes: string | null;
+  photo_url: string | null;
 }
 
 export interface IrrigationRecord extends AuditColumns, SoftDelete {
@@ -229,6 +231,7 @@ export interface IrrigationRecord extends AuditColumns, SoftDelete {
   hours: number | null;
   cost: number;
   notes: string | null;
+  photo_url: string | null;
 }
 
 export interface SprayRecord extends AuditColumns, SoftDelete {
@@ -252,6 +255,7 @@ export interface SprayRecord extends AuditColumns, SoftDelete {
   /** Generated column: material + labour + application. */
   total_cost: number;
   notes: string | null;
+  photo_url: string | null;
 }
 
 export interface FertilizerRecord extends AuditColumns, SoftDelete {
@@ -269,6 +273,7 @@ export interface FertilizerRecord extends AuditColumns, SoftDelete {
   labour_cost: number;
   total_cost: number;
   notes: string | null;
+  photo_url: string | null;
 }
 
 export interface SeedRecord extends AuditColumns, SoftDelete {
@@ -286,6 +291,7 @@ export interface SeedRecord extends AuditColumns, SoftDelete {
   total_cost: number;
   supplier: string | null;
   notes: string | null;
+  photo_url: string | null;
 }
 
 export interface Harvest extends AuditColumns, SoftDelete {
@@ -307,6 +313,7 @@ export interface Harvest extends AuditColumns, SoftDelete {
   transport_cost: number;
   total_cost: number;
   notes: string | null;
+  photo_url: string | null;
 }
 
 export interface Sale extends AuditColumns, SoftDelete {
@@ -329,6 +336,7 @@ export interface Sale extends AuditColumns, SoftDelete {
   payment_status: PaymentStatus;
   amount_received: number;
   notes: string | null;
+  photo_url: string | null;
 }
 
 export interface AuditLog {
