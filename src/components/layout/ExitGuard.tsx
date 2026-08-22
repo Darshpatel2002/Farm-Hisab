@@ -24,17 +24,8 @@ export function ExitGuard() {
       setOpen(true);
     };
 
-    const onBeforeUnload = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-      event.returnValue = '';
-    };
-
     window.addEventListener('popstate', onPopState);
-    window.addEventListener('beforeunload', onBeforeUnload);
-    return () => {
-      window.removeEventListener('popstate', onPopState);
-      window.removeEventListener('beforeunload', onBeforeUnload);
-    };
+    return () => window.removeEventListener('popstate', onPopState);
   }, []);
 
   return (

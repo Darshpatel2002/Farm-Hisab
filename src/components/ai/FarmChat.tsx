@@ -6,18 +6,49 @@ import { useFarmChat, type ChatTurn } from '../../features/ai/useFarmChat';
 /** Prompts that show a farmer what the assistant is good at. */
 const SUGGESTIONS = ['assistant.q1', 'assistant.q2', 'assistant.q3', 'assistant.q4'] as const;
 
+/** Renders **bold** and "- " bullets. Text only, so nothing can be injected. */
+function RichText({ text }: { text: string }) {
+  return (
+    <>
+      {text.split('\n').map((line, lineIndex) => {
+        const trimmed = line.trim();
+        if (!trimmed) return <div key={lineIndex} className="h-2" />;
+
+        const bullet = /^[-*•]\s+/.test(trimmed);
+        const content = bullet ? trimmed.replace(/^[-*•]\s+/, '') : trimmed;
+        const pieces = content.split(/\*\*(.+?)\*\*/g);
+
+        const rendered = pieces.map((piece, i) =>
+          i % 2 === 1 ? <strong key={i}>{piece}</strong> : <span key={i}>{piece}</span>,
+        );
+
+        return bullet ? (
+          <div key={lineIndex} className="flex gap-2 py-0.5">
+            <span aria-hidden="true" className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-current opacity-60" />
+            <span>{rendered}</span>
+          </div>
+        ) : (
+          <p key={lineIndex} className="py-0.5">
+            {rendered}
+          </p>
+        );
+      })}
+    </>
+  );
+}
+
 function Bubble({ turn }: { turn: ChatTurn }) {
   const mine = turn.role === 'user';
   return (
     <div className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
       <div
-        className={`max-w-[85%] whitespace-pre-wrap rounded-3xl px-4 py-3 text-base leading-relaxed shadow-sm ${
+        className={`max-w-[85%] rounded-3xl px-4 py-3 text-base leading-relaxed shadow-sm ${
           mine
             ? 'rounded-br-lg bg-gradient-to-br from-brand-600 to-brand-700 text-white'
             : 'rounded-bl-lg border border-slate-200 bg-white text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100'
         }`}
       >
-        {turn.text}
+        {mine ? <span className="whitespace-pre-wrap">{turn.text}</span> : <RichText text={turn.text} />}
       </div>
     </div>
   );
