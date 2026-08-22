@@ -196,23 +196,26 @@ no irrigation for 19 days") instead of generic.
 It runs as a Supabase Edge Function so the API key never reaches the browser, and every database read
 uses the caller's JWT, so Row Level Security still decides what is visible.
 
-**Setup (one time):**
+**Setup (one time):** run these from the project root.
 
 1. Get a free Gemini API key at <https://aistudio.google.com/apikey>.
-2. Install the Supabase CLI and log in:
+2. Log in and link the project (the CLI runs through `npx` — a global install is not supported):
    ```bash
-   npm install -g supabase
-   supabase login
-   supabase link --project-ref YOUR_PROJECT_REF
+   npx supabase login
+   npx supabase link --project-ref YOUR_PROJECT_REF
    ```
+   The project ref is the first part of your Supabase URL, e.g. `https://abcd1234.supabase.co` → `abcd1234`.
 3. Store the key as a secret (never commit it):
    ```bash
-   supabase secrets set GEMINI_API_KEY=your_key_here
+   npx supabase secrets set GEMINI_API_KEY=your_key_here
    ```
 4. Deploy the function:
    ```bash
-   supabase functions deploy farm-ai
+   npx supabase functions deploy farm-ai
    ```
+
+Prefer clicking? You can instead create the function and set the secret in the Supabase dashboard under
+**Edge Functions** and **Project Settings → Edge Functions → Secrets**.
 
 Until this is done the assistant shows "not set up yet"; the rest of the app is unaffected.
 
