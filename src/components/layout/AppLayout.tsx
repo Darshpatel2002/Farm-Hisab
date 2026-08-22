@@ -7,6 +7,7 @@ import { useSyncStatus } from '../../hooks/usePreferences';
 import { flushQueue } from '../../lib/offline/queue';
 import { ExitGuard } from './ExitGuard';
 import { BRAND_GRADIENT, usePageTheme } from './pageTheme';
+import { ChatBubble } from '../ai/ChatBubble';
 
 /**
  * Desktop: sidebar navigation.
@@ -36,6 +37,7 @@ const ALL_LINKS = [
   { to: '/sales', key: 'sales', icon: '🏷️' },
   { to: '/reports', key: 'reports', icon: '📊' },
   { to: '/settings', key: 'settings', icon: '⚙️' },
+  { to: '/assistant', key: 'assistant', icon: '🤖' },
 ] as const;
 
 /** Sidebar sections - grouping keeps a 14-item menu scannable. */
@@ -44,6 +46,7 @@ const NAV_GROUPS = [
     labelKey: 'nav.groupOverview',
     links: [
       { to: '/', key: 'dashboard', icon: '🏠' },
+      { to: '/assistant', key: 'assistant', icon: '🤖' },
       { to: '/reports', key: 'reports', icon: '📊' },
     ],
   },
@@ -317,6 +320,8 @@ export function AppLayout() {
           </ul>
         </nav>
       </div>
+
+      <ChatBubble />
     </div>
   );
 }

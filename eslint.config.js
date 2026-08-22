@@ -5,7 +5,8 @@ import tsParser from '@typescript-eslint/parser';
 import reactHooks from 'eslint-plugin-react-hooks';
 
 export default [
-  { ignores: ['dist', 'dev-dist', 'node_modules', 'coverage', '*.config.js'] },
+  // Deno Edge Functions have their own runtime and remote imports.
+  { ignores: ['dist', 'dev-dist', 'node_modules', 'coverage', '*.config.js', 'supabase/functions'] },
   js.configs.recommended,
   {
     files: ['**/*.{ts,tsx}'],

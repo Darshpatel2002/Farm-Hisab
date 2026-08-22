@@ -36,6 +36,7 @@ const ICONS: Record<string, string> = {
   sales: '🏷️',
   reports: '📊',
   settings: '⚙️',
+  assistant: '🤖',
   search: '🔍',
   add: '➕',
   more: '☰',

@@ -9,6 +9,25 @@
     "message": "You pressed back. Do you want to stay in the app or log out?",
     "stay": "Stay in app"
   },
+  "assistant": {
+    "title": "Farm Assistant",
+    "short": "Ask",
+    "subtitle": "Ask anything about your crops. I can see your own records.",
+    "open": "Open the farm assistant",
+    "greeting": "Namaste! How can I help your farm today?",
+    "greetingHelp": "I know your farms, crops, sowing dates, sprays, fertilizer and irrigation. Ask me anything about them.",
+    "placeholder": "Why are my groundnut leaves turning yellow?",
+    "inputLabel": "Your question",
+    "send": "Send",
+    "clear": "Clear chat",
+    "disclaimer": "Advice only - confirm chemical doses with the label or your local agri centre.",
+    "failed": "Could not get an answer right now. Please try again.",
+    "notConfigured": "The assistant is not set up yet. Add the GEMINI_API_KEY secret to your Supabase project.",
+    "q1": "Why are my crop leaves turning yellow?",
+    "q2": "Which spray should I do now?",
+    "q3": "Is my irrigation schedule alright?",
+    "q4": "How can I reduce my cost this season?"
+  },
   "photo": {
     "label": "Photo / bill",
     "add": "Add photo",
@@ -36,6 +55,7 @@
     "add": "Add",
     "menu": "Menu",
     "records": "Records",
+    "assistant": "Assistant",
     "groupOverview": "Overview",
     "groupLand": "Land & Crops",
     "groupWork": "Field work",

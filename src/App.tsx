@@ -31,6 +31,7 @@ const QuickAddPage = lazy(() => import('./pages/QuickAddPage'));
 const MorePage = lazy(() => import('./pages/MorePage'));
 const SearchPage = lazy(() => import('./pages/SearchPage'));
 const LandingPage = lazy(() => import('./pages/LandingPage'));
+const AssistantPage = lazy(() => import('./pages/AssistantPage'));
 
 // Data is small and read often - keep it in memory for a minute between screens.
 const queryClient = new QueryClient({
@@ -85,6 +86,7 @@ function ProtectedRoutes() {
             <Route path="add" element={<QuickAddPage />} />
             <Route path="more" element={<MorePage />} />
             <Route path="search" element={<SearchPage />} />
+            <Route path="assistant" element={<AssistantPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>

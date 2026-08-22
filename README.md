@@ -185,15 +185,36 @@ No paid domain is needed.
 
 **Settings → Backup and export**
 
-- Export everything as JSON (a complete, re-importable backup)
-- Export expenses / harvest / sales as CSV
-- Import a JSON backup — existing rows are skipped, nothing is deleted
+- Export as **CSV** (spreadsheet), **Excel** or **PDF** (print-ready)
 
-## Demo data
+## Farm Assistant (AI chat)
 
-**Settings → Demo data → Load demo data** creates 15 farms, 5 crops, 2 seasons and a full set of
-expenses, irrigation, sprays, harvests and sales. Every demo row is named with `(Demo)` and can be
-removed in one click. The data is realistic but entirely fictional.
+An in-app chatbot that answers questions using the farmer's **own records** — sowing dates, sprays,
+irrigation, fertilizer and harvest — so answers are specific ("your Magfali, sown 62 days ago, has had
+no irrigation for 19 days") instead of generic.
+
+It runs as a Supabase Edge Function so the API key never reaches the browser, and every database read
+uses the caller's JWT, so Row Level Security still decides what is visible.
+
+**Setup (one time):**
+
+1. Get a free Gemini API key at <https://aistudio.google.com/apikey>.
+2. Install the Supabase CLI and log in:
+   ```bash
+   npm install -g supabase
+   supabase login
+   supabase link --project-ref YOUR_PROJECT_REF
+   ```
+3. Store the key as a secret (never commit it):
+   ```bash
+   supabase secrets set GEMINI_API_KEY=your_key_here
+   ```
+4. Deploy the function:
+   ```bash
+   supabase functions deploy farm-ai
+   ```
+
+Until this is done the assistant shows "not set up yet"; the rest of the app is unaffected.
 
 ---
 
