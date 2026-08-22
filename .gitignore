@@ -21,3 +21,8 @@ src/**/*.js
 
 # Supabase CLI local state
 supabase/.temp/
+
+# Local auth/test artifacts
+jwt.txt
+resp.txt
+body.json
