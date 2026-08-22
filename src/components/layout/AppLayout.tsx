@@ -7,7 +7,6 @@ import { useSyncStatus } from '../../hooks/usePreferences';
 import { flushQueue } from '../../lib/offline/queue';
 import { ExitGuard } from './ExitGuard';
 import { BRAND_GRADIENT, usePageTheme } from './pageTheme';
-import { FIELD_STRIP } from './scenery';
 
 /**
  * Desktop: sidebar navigation.
@@ -154,26 +153,15 @@ export function AppLayout() {
     <div className="relative min-h-screen lg:flex">
       <ExitGuard />
 
-      {/* Section motif + soft green wash filling the empty space behind content. */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none fixed inset-0 -z-10 opacity-[0.07] transition-opacity duration-500 dark:opacity-[0.05]"
-        style={{ backgroundImage: theme.motif, backgroundRepeat: 'repeat' }}
-      />
+      {/* Calm, near-flat backdrop: the artwork lives in the page hero, not here. */}
       <div
         aria-hidden="true"
         className="pointer-events-none fixed inset-0 -z-10"
         style={{
           background:
-            'radial-gradient(900px 480px at 12% -8%, rgba(61,148,64,0.16), transparent 62%),' +
-            'radial-gradient(760px 420px at 100% 4%, rgba(251,201,77,0.14), transparent 58%)',
+            'radial-gradient(1000px 520px at 10% -10%, rgba(61,148,64,0.10), transparent 60%),' +
+            'radial-gradient(820px 460px at 100% 0%, rgba(251,201,77,0.08), transparent 58%)',
         }}
-      />
-      {/* Crop silhouette anchoring the bottom of every screen. */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none fixed inset-x-0 bottom-0 -z-10 h-40 bg-bottom bg-repeat-x"
-        style={{ backgroundImage: FIELD_STRIP, backgroundSize: 'cover' }}
       />
 
       {/* Desktop sidebar - stays put while the page scrolls. */}

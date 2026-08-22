@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Spinner } from './Button';
 import { usePageTheme } from '../layout/pageTheme';
-import { FARM_SCENE } from '../layout/scenery';
 
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
   return <div className={`card ${className}`}>{children}</div>;
@@ -25,14 +24,10 @@ export function PageHeader({ title, subtitle, action }: { title: string; subtitl
   const { t } = useTranslation();
   const theme = usePageTheme();
   return (
-    <header className="relative mb-6 min-h-[150px] overflow-hidden rounded-3xl shadow-card">
-      {/* Farmland vista at full strength... */}
-      <span
-        aria-hidden="true"
-        className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: FARM_SCENE }}
-      />
-      {/* ...with a scrim that is dense behind the text and clear over the artwork. */}
+    <header className="relative mb-6 min-h-[160px] overflow-hidden rounded-3xl shadow-card">
+      {/* Module hero artwork. */}
+      <span aria-hidden="true" className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: theme.scene }} />
+      {/* Brand scrim: dense behind the text, clear over the artwork on the right. */}
       <span
         aria-hidden="true"
         className={`absolute inset-0 bg-gradient-to-r ${theme.gradient} opacity-95`}
@@ -42,16 +37,10 @@ export function PageHeader({ title, subtitle, action }: { title: string; subtitl
         }}
       />
       <span aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-black/35 to-transparent" />
-      {/* Section motif keeps each tab recognisable while the colour stays constant. */}
-      <span
-        aria-hidden="true"
-        className="absolute inset-0 opacity-[0.13] brightness-0 invert"
-        style={{ backgroundImage: theme.motif, backgroundRepeat: 'repeat' }}
-      />
 
       <div className="relative flex flex-wrap items-center justify-between gap-4 p-6 sm:p-7">
         <div className="min-w-0">
-          <p className="mb-1 flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.2em] text-white/70">
+          <p className="mb-1 flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.2em] text-white/75">
             <span aria-hidden="true" className="text-base">{theme.icon}</span>
             {t('app.name')}
           </p>

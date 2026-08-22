@@ -11,21 +11,11 @@
   body {
     @apply text-slate-900 antialiased dark:text-slate-100;
     font-family: 'Plus Jakarta Sans', system-ui, 'Segoe UI', 'Noto Sans Gujarati', Roboto, Arial, sans-serif;
-    /* Layered agricultural backdrop that stays fixed while content scrolls. */
-    background-color: #eef6ec;
-    background-image:
-      radial-gradient(900px 500px at -5% -10%, rgba(147, 205, 144, 0.5), transparent 60%),
-      radial-gradient(900px 520px at 105% 0%, rgba(251, 201, 77, 0.28), transparent 55%),
-      linear-gradient(180deg, #eef6ec 0%, #f6faf4 40%, #ffffff 100%);
-    background-attachment: fixed;
+    background-color: #f7faf5;
   }
 
   .dark body {
     background-color: #0b1220;
-    background-image:
-      radial-gradient(900px 500px at -5% -10%, rgba(36, 94, 43, 0.35), transparent 60%),
-      radial-gradient(900px 520px at 105% 0%, rgba(120, 58, 16, 0.25), transparent 55%),
-      linear-gradient(180deg, #0b1220 0%, #0d1526 55%, #0a0f1c 100%);
   }
 
   /* Visible focus for keyboard users on every interactive element. */
@@ -49,11 +39,11 @@
 }
 
 @layer components {
-  /* Elevated glassy surface used for most content blocks. */
+  /* Elevated surface used for most content blocks - kept opaque for readability. */
   .card {
-    @apply rounded-3xl border border-white/70 bg-white/85 p-5 shadow-card backdrop-blur-sm
+    @apply rounded-3xl border border-slate-200/80 bg-white p-5 shadow-card
       transition duration-200
-      dark:border-slate-700/60 dark:bg-slate-900/80;
+      dark:border-slate-700/60 dark:bg-slate-900;
   }
 
   /* Card that lifts slightly on hover - good for clickable rows. */

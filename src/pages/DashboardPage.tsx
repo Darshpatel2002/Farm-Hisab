@@ -7,7 +7,7 @@ import { useAppData } from '../hooks/useAppData';
 import { useSeasonReport } from '../features/reports/useSeasonReport';
 import { rankBy } from '../lib/calculations/ranking';
 import { formatCurrency, formatNumber } from '../lib/formatting/number';
-import { FARM_SCENE } from '../components/layout/scenery';
+import { SCENES } from '../components/layout/scenery';
 
 const QUICK_ACTIONS = [
   { to: '/expenses', key: 'expenses.add', icon: '💰', gradient: 'from-rose-500 to-red-700' },
@@ -69,7 +69,7 @@ export default function DashboardPage() {
     return (
       <section>
         <div className="relative overflow-hidden rounded-3xl text-white shadow-card">
-          <span aria-hidden="true" className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: FARM_SCENE }} />
+          <span aria-hidden="true" className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: SCENES.dashboard }} />
           <span aria-hidden="true" className="absolute inset-0 bg-gradient-to-br from-brand-600 via-brand-700 to-brand-800 opacity-90" style={SCRIM} />
           <span aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
           <div className="relative p-8">
@@ -109,7 +109,7 @@ export default function DashboardPage() {
     <section>
       {/* Season hero - the anchor for the whole screen. */}
       <div className="relative mb-6 overflow-hidden rounded-3xl shadow-card">
-        <span aria-hidden="true" className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: FARM_SCENE }} />
+        <span aria-hidden="true" className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: SCENES.dashboard }} />
         <span aria-hidden="true" className="absolute inset-0 bg-gradient-to-br from-brand-600 via-brand-700 to-brand-800 opacity-90" style={SCRIM} />
         <span aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
         <span aria-hidden="true" className="absolute right-8 top-8 hidden animate-float text-6xl drop-shadow-lg sm:block">🌾</span>
