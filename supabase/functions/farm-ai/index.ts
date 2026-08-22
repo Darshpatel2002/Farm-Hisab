@@ -4,16 +4,15 @@
 //
 // Security notes:
 //  - The Gemini API key lives only in this function's environment.
-//  - Every database read uses the CALLER's JWT, so Row Level Security decides
-//    what is visible. This function never uses the service-role key.
-
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
+//  - Every database read forwards the CALLER's JWT to PostgREST, so Row Level
+//    Security decides what is visible. The service-role key is never used.
+//  - No third-party imports: plain fetch only, so the function cannot fail to boot.
 
 const GEMINI_MODELS = ['gemini-2.0-flash', 'gemini-flash-latest', 'gemini-1.5-flash'];
 const MAX_QUESTION_CHARS = 1500;
 const MAX_HISTORY = 10;
 
-const corsHeaders = {
+const corsHeaders: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
@@ -24,6 +23,8 @@ interface ChatMessage {
   text: string;
 }
 
+type Row = Record<string, unknown>;
+
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -31,15 +32,14 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
-function daysBetween(from: string | null, to = new Date()): number | null {
+function daysSince(from: string | null): number | null {
   if (!from) return null;
   const start = new Date(from);
   if (Number.isNaN(start.getTime())) return null;
-  return Math.round((to.getTime() - start.getTime()) / 86_400_000);
+  return Math.round((Date.now() - start.getTime()) / 86_400_000);
 }
 
-/** Most recent date in a list of rows, or null. */
-function latest(rows: Array<Record<string, unknown>>, column: string): string | null {
+function latest(rows: Row[], column: string): string | null {
   let best: string | null = null;
   for (const row of rows) {
     const value = row[column];
@@ -48,12 +48,19 @@ function latest(rows: Array<Record<string, unknown>>, column: string): string | 
   return best;
 }
 
-Deno.serve(async (request: Request) => {
+function str(value: unknown): string {
+  return value === null || value === undefined ? '' : String(value);
+}
+
+Deno.serve(async (request: Request): Promise<Response> => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (request.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
 
   const apiKey = Deno.env.get('GEMINI_API_KEY');
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
   if (!apiKey) return json({ error: 'not_configured' }, 500);
+  if (!supabaseUrl || !anonKey) return json({ error: 'not_configured', detail: 'missing supabase env' }, 500);
 
   const authHeader = request.headers.get('Authorization');
   if (!authHeader) return json({ error: 'unauthorized' }, 401);
@@ -76,28 +83,28 @@ Deno.serve(async (request: Request) => {
         .slice(-MAX_HISTORY)
     : [];
 
-  // RLS-scoped client: the caller can only ever read their own household.
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-    { global: { headers: { Authorization: authHeader } } },
-  );
+  const authHeaders = { Authorization: authHeader, apikey: anonKey };
 
-  const { data: userData, error: userError } = await supabase.auth.getUser();
-  if (userError || !userData?.user) return json({ error: 'unauthorized' }, 401);
+  // Confirm the caller is a real signed-in user before touching any data.
+  const userResponse = await fetch(`${supabaseUrl}/auth/v1/user`, { headers: authHeaders });
+  if (!userResponse.ok) return json({ error: 'unauthorized' }, 401);
+
+  /** Reads a table through PostgREST under the caller's RLS policies. */
+  async function select(table: string, query: string): Promise<Row[]> {
+    const response = await fetch(`${supabaseUrl}/rest/v1/${table}?${query}`, { headers: authHeaders });
+    if (!response.ok) return [];
+    return (await response.json()) as Row[];
+  }
 
   let context: string;
   try {
-    context = await buildFarmContext(supabase);
+    context = await buildFarmContext(select);
   } catch (error) {
-    console.error('context_failed', error);
-    return json({ error: 'context_failed' }, 500);
+    return json({ error: 'context_failed', detail: error instanceof Error ? error.message : String(error) }, 500);
   }
 
-  const systemPrompt = buildSystemPrompt(language, context);
-
   const body = JSON.stringify({
-    systemInstruction: { parts: [{ text: systemPrompt }] },
+    systemInstruction: { parts: [{ text: buildSystemPrompt(language, context) }] },
     contents: [
       ...history.map((m) => ({ role: m.role, parts: [{ text: m.text }] })),
       { role: 'user', parts: [{ text: question }] },
@@ -121,25 +128,22 @@ Deno.serve(async (request: Request) => {
       );
 
       if (!response.ok) {
-        lastDetail = `${model}: ${response.status} ${(await response.text()).slice(0, 400)}`;
-        console.error('gemini_error', lastDetail);
-        // Only a missing/blocked model is worth retrying with another name.
+        lastDetail = `${model}: ${response.status} ${(await response.text()).slice(0, 300)}`;
         if (response.status === 404 || response.status === 400) continue;
         return json({ error: 'ai_failed', detail: lastDetail }, 502);
       }
 
       const result = await response.json();
-      const answer: string =
-        result?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('') ?? '';
+      const parts = result?.candidates?.[0]?.content?.parts as Array<{ text?: string }> | undefined;
+      const answer = (parts ?? []).map((p) => p.text ?? '').join('').trim();
 
-      if (!answer.trim()) {
-        lastDetail = `${model}: empty response ${JSON.stringify(result).slice(0, 300)}`;
+      if (!answer) {
+        lastDetail = `${model}: empty ${JSON.stringify(result).slice(0, 250)}`;
         continue;
       }
       return json({ answer });
     } catch (error) {
       lastDetail = `${model}: ${error instanceof Error ? error.message : String(error)}`;
-      console.error('ai_request_failed', lastDetail);
     }
   }
 
@@ -158,14 +162,14 @@ ${languageRule}
 
 HOW TO ANSWER
 - Always ground your answer in the farmer's own records below. Refer to real crops, farms and dates ("your Magfali on Nani Vadi, sown 62 days ago").
-- If a record explains the problem (e.g. no irrigation for 20 days, no fertilizer since sowing, a spray overdue), say so directly.
+- If a record explains the problem (no irrigation for 20 days, no fertilizer since sowing, a spray overdue), say so directly.
 - Give 2-4 concrete next steps, ordered by what to do first.
 - Keep it under 220 words. Use short bullet lines starting with "- ".
 - If several causes are possible, list the most likely first and say what to check in the field to confirm.
 - Prefer locally available, low-cost remedies.
 
 SAFETY
-- You may name common product categories (e.g. urea, NPK, sulphur, neem oil, a fungicide) but for exact chemical doses tell the farmer to confirm with the label or the local Krushi Vigyan Kendra / agri dealer.
+- You may name common product categories (urea, NPK, sulphur, neem oil, a fungicide) but for exact chemical doses tell the farmer to confirm with the label or the local Krushi Vigyan Kendra / agri dealer.
 - Never advise anything unsafe for people, animals or the soil.
 - If the records do not contain enough information, say what is missing and ask one short follow-up question.
 - If asked something unrelated to farming, politely steer back to the farm.
@@ -175,103 +179,98 @@ ${context}`;
 }
 
 /** Summarises the signed-in household's records into a compact briefing. */
-async function buildFarmContext(supabase: ReturnType<typeof createClient>): Promise<string> {
-  const today = new Date().toISOString().slice(0, 10);
-  const lines: string[] = [`Today's date: ${today}`];
+async function buildFarmContext(select: (table: string, query: string) => Promise<Row[]>): Promise<string> {
+  const lines: string[] = [`Today's date: ${new Date().toISOString().slice(0, 10)}`];
 
-  const [settingsRes, seasonsRes, farmsRes, cropsRes] = await Promise.all([
-    supabase.from('household_settings').select('currency, default_area_unit, default_weight_unit').limit(1),
-    supabase.from('seasons').select('id, name, year, status, start_date, end_date').is('deleted_at', null),
-    supabase.from('farms').select('id, name, local_name, area, area_unit, acre_equivalent').is('deleted_at', null),
-    supabase.from('crops').select('id, name, name_gu, category').is('deleted_at', null),
+  const [settingsRows, seasons, farms, crops] = await Promise.all([
+    select('household_settings', 'select=currency,default_area_unit,default_weight_unit&limit=1'),
+    select('seasons', 'select=id,name,year,status,start_date,end_date&deleted_at=is.null'),
+    select('farms', 'select=id,name,local_name,area,area_unit&deleted_at=is.null'),
+    select('crops', 'select=id,name,name_gu&deleted_at=is.null'),
   ]);
 
-  const settings = settingsRes.data?.[0] as Record<string, string> | undefined;
-  const seasons = (seasonsRes.data ?? []) as Array<Record<string, string>>;
-  const farms = (farmsRes.data ?? []) as Array<Record<string, string | number>>;
-  const crops = (cropsRes.data ?? []) as Array<Record<string, string>>;
-
+  const settings = settingsRows[0];
   if (settings) {
-    lines.push(`Units: area in ${settings.default_area_unit}, weight in ${settings.default_weight_unit}. Currency ${settings.currency}.`);
+    lines.push(
+      `Units: area in ${str(settings.default_area_unit)}, weight in ${str(settings.default_weight_unit)}. Currency ${str(settings.currency)}.`,
+    );
   }
 
   const season = seasons.find((s) => s.status === 'active') ?? seasons[seasons.length - 1];
   if (!season) return `${lines.join('\n')}\n\nThe farmer has not created any season yet, so there are no crop records.`;
 
-  lines.push(`Current season: ${season.name} (${season.year}), status ${season.status}.`);
+  lines.push(`Current season: ${str(season.name)} (${str(season.year)}), status ${str(season.status)}.`);
 
-  const farmName = new Map(farms.map((f) => [String(f.id), String(f.name)]));
-  const cropName = new Map(crops.map((c) => [c.id, c.name_gu ? `${c.name} (${c.name_gu})` : c.name]));
+  const farmName = new Map(farms.map((f) => [str(f.id), str(f.name)]));
+  const cropName = new Map(crops.map((c) => [str(c.id), c.name_gu ? `${str(c.name)} (${str(c.name_gu)})` : str(c.name)]));
 
-  lines.push(`Farms: ${farms.map((f) => `${f.name} - ${f.area} ${f.area_unit}`).join('; ') || 'none'}`);
+  lines.push(`Farms: ${farms.map((f) => `${str(f.name)} - ${str(f.area)} ${str(f.area_unit)}`).join('; ') || 'none'}`);
 
-  const { data: allocData } = await supabase
-    .from('farm_crop_allocations')
-    .select('id, farm_id, crop_id, area, area_unit, sowing_date, expected_harvest_date, status')
-    .eq('season_id', season.id)
-    .is('deleted_at', null);
-  const allocations = (allocData ?? []) as Array<Record<string, string | number>>;
+  const seasonFilter = `season_id=eq.${str(season.id)}&deleted_at=is.null`;
+  const allocations = await select(
+    'farm_crop_allocations',
+    `select=id,farm_id,crop_id,area,area_unit,sowing_date,expected_harvest_date,status&${seasonFilter}`,
+  );
 
   if (allocations.length === 0) {
     lines.push('No crops have been planted in this season yet.');
     return lines.join('\n');
   }
 
-  // Per-crop operational history is what makes the advice specific.
   const [irrigation, sprays, fertilizer, harvests, activities] = await Promise.all([
-    supabase.from('irrigation_records').select('allocation_id, farm_id, date, water_source, hours').eq('season_id', season.id).is('deleted_at', null),
-    supabase.from('spray_records').select('allocation_id, farm_id, crop_id, date, product_name, purpose, spray_number').eq('season_id', season.id).is('deleted_at', null),
-    supabase.from('fertilizer_records').select('allocation_id, farm_id, date, product_name, quantity, unit').eq('season_id', season.id).is('deleted_at', null),
-    supabase.from('harvests').select('allocation_id, farm_id, start_date, quantity, unit, quality').eq('season_id', season.id).is('deleted_at', null),
-    supabase.from('activities').select('allocation_id, farm_id, date, activity_type, description').eq('season_id', season.id).is('deleted_at', null),
+    select('irrigation_records', `select=allocation_id,date,water_source,hours&${seasonFilter}`),
+    select('spray_records', `select=allocation_id,date,product_name,purpose,spray_number&${seasonFilter}`),
+    select('fertilizer_records', `select=allocation_id,date,product_name,quantity,unit&${seasonFilter}`),
+    select('harvests', `select=allocation_id,start_date,quantity,unit,quality&${seasonFilter}`),
+    select('activities', `select=allocation_id,date,activity_type,description&${seasonFilter}`),
   ]);
 
-  const byAllocation = <T extends { allocation_id?: unknown }>(rows: T[] | null, id: string): T[] =>
-    (rows ?? []).filter((r) => String(r.allocation_id ?? '') === id);
+  const forAllocation = (rows: Row[], id: string) => rows.filter((r) => str(r.allocation_id) === id);
 
   lines.push('\nCROP PLANS AND THEIR HISTORY:');
 
   for (const allocation of allocations) {
-    const id = String(allocation.id);
-    const sownDays = daysBetween(allocation.sowing_date ? String(allocation.sowing_date) : null);
-    const header =
-      `- ${cropName.get(String(allocation.crop_id)) ?? 'Unknown crop'} on ${farmName.get(String(allocation.farm_id)) ?? 'unknown farm'} ` +
-      `(${allocation.area} ${allocation.area_unit}, status ${allocation.status}` +
-      (sownDays !== null ? `, sown ${sownDays} days ago on ${allocation.sowing_date}` : ', sowing date not recorded') +
-      ')';
-    lines.push(header);
+    const id = str(allocation.id);
+    const sown = allocation.sowing_date ? str(allocation.sowing_date) : null;
+    const age = daysSince(sown);
 
-    const irr = byAllocation(irrigation.data as Array<Record<string, string>> | null, id);
-    const lastIrr = latest(irr, 'date');
     lines.push(
-      `    Irrigation: ${irr.length} times` +
-        (lastIrr ? `, last ${daysBetween(lastIrr)} days ago (${lastIrr})` : ', none recorded'),
+      `- ${cropName.get(str(allocation.crop_id)) ?? 'Unknown crop'} on ${farmName.get(str(allocation.farm_id)) ?? 'unknown farm'} ` +
+        `(${str(allocation.area)} ${str(allocation.area_unit)}, status ${str(allocation.status)}` +
+        (age !== null ? `, sown ${age} days ago on ${sown}` : ', sowing date not recorded') +
+        ')',
     );
 
-    const spr = byAllocation(sprays.data as Array<Record<string, string>> | null, id);
+    const irr = forAllocation(irrigation, id);
+    const lastIrr = latest(irr, 'date');
+    lines.push(`    Irrigation: ${irr.length} times${lastIrr ? `, last ${daysSince(lastIrr)} days ago (${lastIrr})` : ', none recorded'}`);
+
+    const spr = forAllocation(sprays, id);
     const lastSpray = latest(spr, 'date');
-    const sprayNames = spr.slice(-3).map((s) => `${s.product_name} for ${s.purpose} on ${s.date}`);
     lines.push(
       `    Sprays: ${spr.length} times` +
-        (lastSpray ? `, last ${daysBetween(lastSpray)} days ago. Recent: ${sprayNames.join('; ')}` : ', none recorded'),
+        (lastSpray
+          ? `, last ${daysSince(lastSpray)} days ago. Recent: ${spr.slice(-3).map((s) => `${str(s.product_name)} for ${str(s.purpose)} on ${str(s.date)}`).join('; ')}`
+          : ', none recorded'),
     );
 
-    const fert = byAllocation(fertilizer.data as Array<Record<string, string>> | null, id);
+    const fert = forAllocation(fertilizer, id);
     const lastFert = latest(fert, 'date');
-    const fertNames = fert.slice(-3).map((f) => `${f.product_name} ${f.quantity}${f.unit} on ${f.date}`);
     lines.push(
       `    Fertilizer: ${fert.length} times` +
-        (lastFert ? `, last ${daysBetween(lastFert)} days ago. Recent: ${fertNames.join('; ')}` : ', none recorded'),
+        (lastFert
+          ? `, last ${daysSince(lastFert)} days ago. Recent: ${fert.slice(-3).map((f) => `${str(f.product_name)} ${str(f.quantity)}${str(f.unit)} on ${str(f.date)}`).join('; ')}`
+          : ', none recorded'),
     );
 
-    const har = byAllocation(harvests.data as Array<Record<string, string>> | null, id);
+    const har = forAllocation(harvests, id);
     if (har.length > 0) {
-      lines.push(`    Harvest: ${har.map((h) => `${h.quantity} ${h.unit} (${h.quality}) on ${h.start_date}`).join('; ')}`);
+      lines.push(`    Harvest: ${har.map((h) => `${str(h.quantity)} ${str(h.unit)} (${str(h.quality)}) on ${str(h.start_date)}`).join('; ')}`);
     }
 
-    const act = byAllocation(activities.data as Array<Record<string, string>> | null, id);
+    const act = forAllocation(activities, id);
     if (act.length > 0) {
-      lines.push(`    Recent work: ${act.slice(-4).map((a) => `${a.activity_type} on ${a.date}`).join('; ')}`);
+      lines.push(`    Recent work: ${act.slice(-4).map((a) => `${str(a.activity_type)} on ${str(a.date)}`).join('; ')}`);
     }
   }
 
